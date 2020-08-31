@@ -20,8 +20,9 @@ int main() {
   MAKE_BENCH(g722_apply_qmf).run<Vec<int16_t, 12 * 2>, Vec<int32_t, 2>>(std::cout);
   MAKE_BENCH(fft4).run<Vec<FFTComplex, 4>>(std::cout);
   MAKE_BENCH(fft8).run<Vec<FFTComplex, 8>>(std::cout);
-  bench_idct<1>();
+  //bench_idct<1>();
   bench_idct<4>();
-  bench_idct<8>();
-  bench_idct<16>();
+  //bench_idct<8>();
+  //bench_idct<16>();
+  MAKE_BENCH(sbc_analyze_4).run<Vec<int16_t, 64>, Vec<int32_t, 64>, Vec<int16_t, 64>>(std::cout);
 }

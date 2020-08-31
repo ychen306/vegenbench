@@ -15,4 +15,7 @@ void fft4(FFTComplex *z);
 
 void idct_add_impl(uint8_t *__restrict__ _dst, int16_t *__restrict__ _block, int stride);
 
+void sbc_analyze_4(const int16_t *__restrict__ in,
+    int32_t *__restrict__ out, const int16_t *__restrict__ consts);
+
 #endif // end KERNELS_H

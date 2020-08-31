@@ -1,6 +1,7 @@
 #include "kernels.h"
 #include <stdint.h>
 #include <math.h>
+#include <string.h>
 
 #define MAC16(rt, ra, rb) rt += (ra) * (rb)
 #define MUL16(ra, rb) ((ra) * (rb))
@@ -48,29 +49,29 @@ void g722_apply_qmf(const int16_t *__restrict__ prev_samples, int *__restrict__ 
 }
 
 #define BF(x, y, a, b) do {                     \
-          x = a - b;                              \
-          y = a + b;                              \
-      } while (0)
+  x = a - b;                              \
+  y = a + b;                              \
+} while (0)
 
 #define CMUL(dre, dim, are, aim, bre, bim) do { \
-          (dre) = (are) * (bre) - (aim) * (bim);  \
-          (dim) = (are) * (bim) + (aim) * (bre);  \
-      } while (0)
+  (dre) = (are) * (bre) - (aim) * (bim);  \
+  (dim) = (are) * (bim) + (aim) * (bre);  \
+} while (0)
 
 
 #define BUTTERFLIES(a0,a1,a2,a3) {\
-      BF(t3, t5, t5, t1);\
-      BF(a2.re, a0.re, a0.re, t5);\
-      BF(a3.im, a1.im, a1.im, t3);\
-      BF(t4, t6, t2, t6);\
-      BF(a3.re, a1.re, a1.re, t4);\
-      BF(a2.im, a0.im, a0.im, t6);\
+  BF(t3, t5, t5, t1);\
+  BF(a2.re, a0.re, a0.re, t5);\
+  BF(a3.im, a1.im, a1.im, t3);\
+  BF(t4, t6, t2, t6);\
+  BF(a3.re, a1.re, a1.re, t4);\
+  BF(a2.im, a0.im, a0.im, t6);\
 }
 
 #define TRANSFORM(a0,a1,a2,a3,wre,wim) {\
-      CMUL(t1, t2, a2.re, a2.im, wre, -wim);\
-      CMUL(t5, t6, a3.re, a3.im, wre,  wim);\
-      BUTTERFLIES(a0,a1,a2,a3)\
+  CMUL(t1, t2, a2.re, a2.im, wre, -wim);\
+  CMUL(t5, t6, a3.re, a3.im, wre,  wim);\
+  BUTTERFLIES(a0,a1,a2,a3)\
 }
 
 using FFTDouble = float;
@@ -128,6 +129,7 @@ void idct_add_impl(uint8_t *__restrict__ _dst, int16_t *__restrict__ _block, int
 
   block[0] += 1 << 5;
 
+#pragma unroll
   for(i=0; i<4; i++){
     const SUINT z0=  block[i + 4*0]     +  (unsigned)block[i + 4*2];
     const SUINT z1=  block[i + 4*0]     -  (unsigned)block[i + 4*2];
@@ -140,6 +142,7 @@ void idct_add_impl(uint8_t *__restrict__ _dst, int16_t *__restrict__ _block, int
     block[i + 4*3]= z0 - z3;
   }
 
+#pragma unroll
   for(i=0; i<4; i++){
     const SUINT z0=  block[0 + 4*i]     +  (SUINT)block[2 + 4*i];
     const SUINT z1=  block[0 + 4*i]     -  (SUINT)block[2 + 4*i];
@@ -152,5 +155,44 @@ void idct_add_impl(uint8_t *__restrict__ _dst, int16_t *__restrict__ _block, int
     dst[i + 3*stride]= av_clip_pixel(dst[i + 3*stride] + ((int)(z0 - z3) >> 6));
   }
 
-  //memset(block, 0, 16 * sizeof(dctcoef));
+  memset(block, 0, 16 * sizeof(dctcoef));
+}
+
+#define SBC_COS_TABLE_FIXED_SCALE  15
+#define SBC_PROTO_FIXED_SCALE      16
+#define SCALE_OUT_BITS 15
+
+void sbc_analyze_4(const int16_t *__restrict__ in, int32_t *__restrict__ out,
+    const int16_t *__restrict__ consts)
+{
+  int32_t t1[8];
+  int16_t t2[8];
+  int i, j, hop = 0;
+
+#pragma unroll
+  /* rounding coefficient */
+  for (i = 0; i < 4; i++)
+    t1[i] = 1 << (SBC_PROTO_FIXED_SCALE - 1);
+
+#pragma unroll
+  /* low pass polyphase filter */
+  for (hop = 0; hop < 10*4; hop += 2*4)
+    for (i = 0; i < 2*4; i++)
+      t1[i >> 1] += in[hop + i] * consts[hop + i];
+
+  /* scaling */
+  for (i = 0; i < 4; i++)
+    t2[i] = t1[i] >> SBC_PROTO_FIXED_SCALE;
+
+  memset(t1, 0, sizeof(t1));
+
+#pragma unroll
+  /* do the cos transform */
+  for (i = 0; i < 4/2; i++)
+    for (j = 0; j < 2*4; j++)
+      t1[j>>1] += t2[i * 2 + (j&1)] * consts[10*4 + i*2*4 + j];
+
+#pragma unroll
+  for (i = 0; i < 4; i++)
+    out[i] = t1[i] >> (SBC_COS_TABLE_FIXED_SCALE - SCALE_OUT_BITS);
 }
