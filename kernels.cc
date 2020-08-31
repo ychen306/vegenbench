@@ -106,3 +106,51 @@ void fft8(FFTComplex *z)
   BUTTERFLIES(z[0],z[2],z[4],z[6]);
   TRANSFORM(z[1],z[3],z[5],z[7],sqrthalf,sqrthalf);
 }
+
+// https://github.com/FFmpeg/FFmpeg/blob/e409262837712016097c187e97bf99aadf6a4cdf/libavutil/common.h#L154-L163
+static inline uint8_t av_clip_uint8_c(int a)
+{
+  if (a&(~0xFF)) return (~a)>>31;
+  else           return a;
+}
+
+#define SUINT unsigned
+#define pixel uint8_t
+#define dctcoef int16_t
+#define av_clip_pixel av_clip_uint8_c
+
+void idct_add_impl(uint8_t *__restrict__ _dst, int16_t *__restrict__ _block, int stride)
+{
+  int i;
+  pixel *dst = (pixel*)_dst;
+  dctcoef *block = (dctcoef*)_block;
+  stride >>= sizeof(pixel)-1;
+
+  block[0] += 1 << 5;
+
+  for(i=0; i<4; i++){
+    const SUINT z0=  block[i + 4*0]     +  (unsigned)block[i + 4*2];
+    const SUINT z1=  block[i + 4*0]     -  (unsigned)block[i + 4*2];
+    const SUINT z2= (block[i + 4*1]>>1) -  (unsigned)block[i + 4*3];
+    const SUINT z3=  block[i + 4*1]     + (unsigned)(block[i + 4*3]>>1);
+
+    block[i + 4*0]= z0 + z3;
+    block[i + 4*1]= z1 + z2;
+    block[i + 4*2]= z1 - z2;
+    block[i + 4*3]= z0 - z3;
+  }
+
+  for(i=0; i<4; i++){
+    const SUINT z0=  block[0 + 4*i]     +  (SUINT)block[2 + 4*i];
+    const SUINT z1=  block[0 + 4*i]     -  (SUINT)block[2 + 4*i];
+    const SUINT z2= (block[1 + 4*i]>>1) -  (SUINT)block[3 + 4*i];
+    const SUINT z3=  block[1 + 4*i]     + (SUINT)(block[3 + 4*i]>>1);
+
+    dst[i + 0*stride]= av_clip_pixel(dst[i + 0*stride] + ((int)(z0 + z3) >> 6));
+    dst[i + 1*stride]= av_clip_pixel(dst[i + 1*stride] + ((int)(z1 + z2) >> 6));
+    dst[i + 2*stride]= av_clip_pixel(dst[i + 2*stride] + ((int)(z1 - z2) >> 6));
+    dst[i + 3*stride]= av_clip_pixel(dst[i + 3*stride] + ((int)(z0 - z3) >> 6));
+  }
+
+  //memset(block, 0, 16 * sizeof(dctcoef));
+}

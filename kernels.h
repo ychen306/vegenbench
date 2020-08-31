@@ -12,4 +12,7 @@ struct FFTComplex {
 void fft8(FFTComplex *z);
 void fft4(FFTComplex *z);
 
+
+void idct_add_impl(uint8_t *__restrict__ _dst, int16_t *__restrict__ _block, int stride);
+
 #endif // end KERNELS_H
