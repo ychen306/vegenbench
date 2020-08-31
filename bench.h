@@ -30,9 +30,7 @@ template <typename F, typename Tuple> void call(F f, Tuple &t, unsigned i) {
   detail::call_impl<F, Tuple, 0 == std::tuple_size<ttype>::value,
                     std::tuple_size<ttype>::value>::call(f, t, i);
 }
-extern void clobber(void *);
-
-template <typename T, size_t _N> struct VectorType {
+template <typename T, size_t _N> struct Vec {
   using ElemTy = T;
   static constexpr size_t N = _N;
 
@@ -40,7 +38,6 @@ template <typename T, size_t _N> struct VectorType {
   void allocate(unsigned M) { buf.reset(new ElemTy[N * M]); }
 
   ElemTy *get(unsigned i) { return buf.get() + i * N; }
-  void touch() { clobber(buf.get()); }
 };
 
 template <size_t I, typename... VecTypes>
@@ -56,19 +53,7 @@ void create_buffers(std::tuple<VecTypes...> &buffers, unsigned iters) {
   create_buffers_impl<0>(buffers, iters);
 }
 
-template <size_t I, typename... VecTypes>
-void touch_buffers_impl(std::tuple<VecTypes...> &buffers) {
-  std::get<I>(buffers).touch();
-  if (I + 1 < sizeof...(VecTypes))
-    touch_buffers_impl<(I + 1 < sizeof...(VecTypes) ? I + 1 : I)>(buffers);
-}
-
-template <typename... VecTypes>
-void touch_buffers(std::tuple<VecTypes...> &buffers) {
-  touch_buffers_impl<0>(buffers);
-}
-
-template <typename Wrapper, typename... VecTypes>
+template <typename FuncTy, FuncTy Func, typename... VecTypes>
 double bench(unsigned iters = 100) {
   std::tuple<VecTypes...> buffers;
   create_buffers(buffers, iters);
@@ -82,8 +67,6 @@ double bench(unsigned iters = 100) {
   };
 
   for (int k = 0; k < trials + warmups; k++) {
-    touch_buffers(buffers);
-
     unsigned begin_lo, begin_hi, end_lo, end_hi;
 
     // read begin timer
@@ -94,9 +77,8 @@ double bench(unsigned iters = 100) {
                  : "=r"(begin_hi), "=r"(begin_lo)::"%rax", "%rbx", "%rcx",
                    "%rdx");
 
-#pragma nounroll
     for (int i = 0; i < iters; i++)
-      call(Wrapper::run, buffers, i);
+      call(Func, buffers, i);
 
     // read end timer
     asm volatile("RDTSCP\n\t" /*read the clock*/
@@ -104,7 +86,6 @@ double bench(unsigned iters = 100) {
                  "mov %%eax, %1\n\t"
                  "CPUID\n\t"
                  : "=r"(end_hi), "=r"(end_lo)::"%rax", "%rbx", "%rcx", "%rdx");
-    touch_buffers(buffers);
 
     double elapsed = combine(end_lo, end_hi) - combine(begin_lo, begin_hi);
     if (k >= warmups)
@@ -112,13 +93,23 @@ double bench(unsigned iters = 100) {
   }
   std::sort(timings.begin(), timings.end());
   return (timings[trials / 2] + timings[trials/2+1])/2.0;
-  return timings[0];
 }
 
-template <typename Wrapper, typename... VecTypes> unsigned bench_throughput() {
-  double a = bench<Wrapper, VecTypes...>(200),
-         b = bench<Wrapper, VecTypes...>(100);
-  return int((a - b) / 10);
-}
+template <typename FuncTy, FuncTy Func>
+struct Bench {
+  std::string name;
+  Bench(std::string name) : name(name) {}
+
+  template<typename... VecTypes, typename OS_TY>
+  void run(OS_TY &os) {
+    double a = bench<FuncTy, Func, VecTypes...>(200),
+           b = bench<FuncTy, Func, VecTypes...>(100);
+    double it_per_cyc = (a - b) / 100;
+    os << name << "," << it_per_cyc << '\n';
+  }
+};
+
+
+#define MAKE_BENCH(FUNC) Bench<decltype(FUNC), FUNC>(#FUNC)
 
 #endif // BENCH_H
