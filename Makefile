@@ -29,4 +29,4 @@ kernels-ref.o: kernels.cc kernels.h
 	$(CXX) -O3 -march=native -ffast-math -o $@ -c $<
 
 clean:
-	rm -f *.o bench
+	rm -f *.o bench bench-ref
