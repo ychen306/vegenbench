@@ -18,6 +18,6 @@ void idct_add_impl(uint8_t *__restrict__ _dst, int16_t *__restrict__ _block, int
 void sbc_analyze_4(const int16_t *__restrict__ in,
     int32_t *__restrict__ out, const int16_t *__restrict__ consts);
 
-void partialButterfly8(const int16_t *__restrict__ src, int16_t *__restrict__ dst, int shift);
+void idct8(const int16_t *__restrict__ src, int16_t *__restrict__ dst);
 
 #endif // end KERNELS_H
