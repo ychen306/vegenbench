@@ -23,10 +23,10 @@ bench.o: bench.cc bench.h kernels.h
 	$(CXX) -O3 -o $@ $< -std=c++14 -c
 
 kernels.o: kernels.cc kernels.h
-	$(OPTCXX) $(OPTFLAGS) -o $@ -c $<
+	$(OPTCXX) $(OPTFLAGS) -o $@ -c $< -std=c++11
 
 kernels-ref.o: kernels.cc kernels.h
-	$(CXX) -O3 -march=native -ffast-math -o $@ -c $<
+	$(CXX) -O3 -march=native -ffast-math -o $@ -c $< -std=c++11
 
 clean:
 	rm -f *.o bench bench-ref

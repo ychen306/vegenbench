@@ -1,6 +1,7 @@
 #ifndef BENCH_H
 
 #define BENCH_H
+#include <string>
 #include <algorithm>
 #include <memory>
 #include <stddef.h>
