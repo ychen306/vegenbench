@@ -26,4 +26,9 @@ int main() {
   //bench_idct<16>();
   MAKE_BENCH(sbc_analyze_4).run<Vec<int16_t, 64>, Vec<int32_t, 64>, Vec<int16_t, 64>>(std::cout);
   MAKE_BENCH(idct8).run<Vec<int16_t, 8*8>, Vec<int16_t, 8*8>>(std::cout);
+  MAKE_BENCH(idct4).run<Vec<int16_t, 4*4>, Vec<int16_t, 4*4>>(std::cout);
+  using i32x8 = Vec<int32_t, 8>;
+  MAKE_BENCH(idct8_partial).run<Vec<int16_t, 4*4>, i32x8, i32x8, i32x8, i32x8,
+    i32x8, i32x8, i32x8, i32x8
+    >(std::cout);
 }

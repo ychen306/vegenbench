@@ -19,5 +19,10 @@ void sbc_analyze_4(const int16_t *__restrict__ in,
     int32_t *__restrict__ out, const int16_t *__restrict__ consts);
 
 void idct8(const int16_t *__restrict__ src, int16_t *__restrict__ dst);
+void idct4(const int16_t *__restrict__ src, int16_t *__restrict__ dst);
+void idct8_partial(const int16_t* __restrict__ src,
+    int* __restrict__ E0, int* __restrict__ E1, int* __restrict__ E2, int *__restrict__ E3,
+    int* __restrict__ O0, int* __restrict__ O1, int* __restrict__ O2, int *__restrict__ O3
+    );
 
 #endif // end KERNELS_H

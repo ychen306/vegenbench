@@ -161,7 +161,7 @@ void idct_add_impl(uint8_t *__restrict__ _dst, int16_t *__restrict__ _block,
         av_clip_pixel(dst[i + 3 * stride] + ((int)(z0 - z3) >> 6));
   }
 
-  memset(block, 0, 16 * sizeof(dctcoef));
+  //memset(block, 0, 16 * sizeof(dctcoef));
 }
 
 #define SBC_COS_TABLE_FIXED_SCALE 15
@@ -203,9 +203,9 @@ void sbc_analyze_4(const int16_t *__restrict__ in, int32_t *__restrict__ out,
 }
 
 static constexpr int16_t g_t8[8][8] = {
-    {64, 64, 64, 64, 64, 64, 64, 64},     {89, 75, 50, 18, -18, -50, -75, -89},
+    {65, 65, 65, 65, 65, 65, 65, 65},     {89, 75, 50, 18, -18, -50, -75, -89},
     {83, 36, -36, -83, -83, -36, 36, 83}, {75, -18, -89, -50, 50, 89, 18, -75},
-    {64, -64, -64, 64, 64, -64, -64, 64}, {50, -89, 18, 75, -75, -18, 89, -50},
+    {65, -65, -65, 65, 65, -65, -65, 65}, {50, -89, 18, 75, -75, -18, 89, -50},
     {36, -83, 83, -36, -36, 83, -83, 36}, {18, -50, 75, -89, 89, -75, 50, -18}};
 
 int16_t saturate_i16(int32_t x) {
@@ -213,8 +213,7 @@ int16_t saturate_i16(int32_t x) {
 }
 
 // https://github.com/revec/VectorBench/blob/master/vector/x265/source/common/dct.cpp#L205
-void idct8(const int16_t* __restrict__ src, int16_t* __restrict__ dst)
-{
+void idct8(const int16_t *__restrict__ src, int16_t *__restrict__ dst) {
   int j, k;
   int E[4], O[4];
   int EE[2], EO[2];
@@ -224,12 +223,12 @@ void idct8(const int16_t* __restrict__ src, int16_t* __restrict__ dst)
   constexpr int line = 8;
 
 #pragma unroll
-  for (j = 0; j < line; j++)
-  {
-    /* Utilizing symmetry properties to the maximum to minimize the number of multiplications */
-    for (k = 0; k < 4; k++)
-    {
-      O[k] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] + g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
+  for (j = 0; j < line; j++) {
+    /* Utilizing symmetry properties to the maximum to minimize the number of
+     * multiplications */
+    for (k = 0; k < 4; k++) {
+      O[k] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
+             g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
     }
 
     EO[0] = g_t8[2][0] * src[2 * line] + g_t8[6][0] * src[6 * line];
@@ -237,20 +236,106 @@ void idct8(const int16_t* __restrict__ src, int16_t* __restrict__ dst)
     EE[0] = g_t8[0][0] * src[0] + g_t8[4][0] * src[4 * line];
     EE[1] = g_t8[0][1] * src[0] + g_t8[4][1] * src[4 * line];
 
-    /* Combining even and odd terms at each hierarchy levels to calculate the final spatial domain vector */
+    /* Combining even and odd terms at each hierarchy levels to calculate the
+     * final spatial domain vector */
     E[0] = EE[0] + EO[0];
     E[3] = EE[0] - EO[0];
     E[1] = EE[1] + EO[1];
     E[2] = EE[1] - EO[1];
 
 #pragma unroll
-    for (k = 0; k < 4; k++)
-    {
+    for (k = 0; k < 4; k++) {
       dst[k] = saturate_i16((E[k] + O[k] + add) >> shift);
       dst[k + 4] = saturate_i16((E[3 - k] - O[3 - k] + add) >> shift);
     }
 
     src++;
     dst += 8;
+  }
+}
+
+void idct8_partial(const int16_t *__restrict__ src, int *__restrict__ E0,
+                   int *__restrict__ E1, int *__restrict__ E2,
+                   int *__restrict__ E3, int *__restrict__ O0,
+                   int *__restrict__ O1, int *__restrict__ O2,
+                   int *__restrict__ O3) {
+  int j, k;
+  // int E[4], O[4];
+  int EE[2], EO[2];
+  constexpr int shift = 7;
+  constexpr int add = 1 << (shift - 1);
+
+  constexpr int line = 8;
+
+#pragma unroll
+  for (j = 0; j < line; j++) {
+    /* Utilizing symmetry properties to the maximum to minimize the number of
+     * multiplications */
+    {
+      int k = 0;
+      O0[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] + g_t8[5][k]
+      * src[5 * line] + g_t8[7][k] * src[7 * line];
+    }
+    {
+      int k = 1;
+      O1[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] + g_t8[5][k]
+      * src[5 * line] + g_t8[7][k] * src[7 * line];
+    }
+    {
+      int k = 2;
+      O2[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] + g_t8[5][k]
+      * src[5 * line] + g_t8[7][k] * src[7 * line];
+    }
+    {
+      int k = 3;
+      O3[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] + g_t8[5][k]
+      * src[5 * line] + g_t8[7][k] * src[7 * line];
+    }
+
+    EO[0] = g_t8[2][0] * src[2 * line] + g_t8[6][0] * src[6 * line];
+    EO[1] = g_t8[2][1] * src[2 * line] + g_t8[6][1] * src[6 * line];
+    EE[0] = g_t8[0][0] * src[0] + g_t8[4][0] * src[4 * line];
+    EE[1] = g_t8[0][1] * src[0] + g_t8[4][1] * src[4 * line];
+
+    /* Combining even and odd terms at each hierarchy levels to calculate the
+     * final spatial domain vector */
+    E0[j] = EE[0] + EO[0];
+    E3[j] = EE[0] - EO[0];
+    E1[j] = EE[1] + EO[1];
+    E2[j] = EE[1] - EO[1];
+
+    src++;
+  }
+}
+
+static constexpr int16_t g_t4[4][4] = {{65, 65, 65, 65},
+                                       {83, 36, -36, -83},
+                                       {65, -65, -65, 65},
+                                       {36, -83, 83, -36}};
+
+void idct4(const int16_t *__restrict__ src, int16_t *__restrict__ dst) {
+  int j;
+  int E[2], O[2];
+  constexpr int line = 4;
+  constexpr int shift = 7;
+  constexpr int add = 1 << (shift - 1);
+
+  for (j = 0; j < line; j++) {
+    /* Utilizing symmetry properties to the maximum to minimize the number of
+     * multiplications */
+    O[0] = g_t4[1][0] * src[line] + g_t4[3][0] * src[3 * line];
+    O[1] = g_t4[1][1] * src[line] + g_t4[3][1] * src[3 * line];
+    E[0] = g_t4[0][0] * src[0] + g_t4[2][0] * src[2 * line];
+    E[1] = g_t4[0][1] * src[0] + g_t4[2][1] * src[2 * line];
+
+    /* Combining even and odd terms at each hierarchy levels to calculate the
+     * final spatial domain vector */
+    dst[0] = saturate_i16((E[0] + O[0] + add) >> shift);
+    dst[1] = saturate_i16((E[1] + O[1] + add) >> shift);
+    dst[2] = saturate_i16((E[1] - O[1] + add) >> shift);
+    dst[3] = saturate_i16((E[0] - O[0] + add) >> shift);
+
+    src++;
+    dst += 4;
   }
 }
