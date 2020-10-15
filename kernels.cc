@@ -161,7 +161,7 @@ void idct_add_impl(uint8_t *__restrict__ _dst, int16_t *__restrict__ _block,
         av_clip_pixel(dst[i + 3 * stride] + ((int)(z0 - z3) >> 6));
   }
 
-  //memset(block, 0, 16 * sizeof(dctcoef));
+  // memset(block, 0, 16 * sizeof(dctcoef));
 }
 
 #define SBC_COS_TABLE_FIXED_SCALE 15
@@ -273,23 +273,23 @@ void idct8_partial(const int16_t *__restrict__ src, int *__restrict__ E0,
      * multiplications */
     {
       int k = 0;
-      O0[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] + g_t8[5][k]
-      * src[5 * line] + g_t8[7][k] * src[7 * line];
+      O0[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
+              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
     }
     {
       int k = 1;
-      O1[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] + g_t8[5][k]
-      * src[5 * line] + g_t8[7][k] * src[7 * line];
+      O1[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
+              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
     }
     {
       int k = 2;
-      O2[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] + g_t8[5][k]
-      * src[5 * line] + g_t8[7][k] * src[7 * line];
+      O2[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
+              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
     }
     {
       int k = 3;
-      O3[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] + g_t8[5][k]
-      * src[5 * line] + g_t8[7][k] * src[7 * line];
+      O3[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
+              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
     }
 
     EO[0] = g_t8[2][0] * src[2 * line] + g_t8[6][0] * src[6 * line];
@@ -338,4 +338,57 @@ void idct4(const int16_t *__restrict__ src, int16_t *__restrict__ dst) {
     src++;
     dst += 4;
   }
+}
+
+static constexpr int16_t g_lumaFilter[4][8] = {
+    {0, 0, 0, 641, 0, 0, 0, 0},
+    {-1, 41, -10, 58, 17, -5, 1, 0},
+    {-1, 41, -11, 40, 40, -11, 41, -1},
+    {0, 1, -5, 17, 58, -10, 41, -1}};
+
+static constexpr int16_t g_chromaFilter[8][4] = {
+    {0, 641, 0, 0},     {-21, 58, 10, -21}, {-41, 54, 16, -21},
+    {-61, 46, 28, -41}, {-41, 36, 36, -41}, {-41, 28, 46, -61},
+    {-21, 16, 54, -41}, {-21, 10, 58, -21}};
+
+template <int N, int width, int height>
+void interp_vert_ss_c(const int16_t *__restrict__ src, intptr_t srcStride,
+                      int16_t *__restrict__ dst, intptr_t dstStride,
+                      int coeffIdx) {
+  const int16_t *c =
+      (N == 8 ? g_lumaFilter[coeffIdx] : g_chromaFilter[coeffIdx]);
+  int shift = 6;
+  int row, col;
+
+  src -= (N / 2 - 1) * srcStride;
+#pragma unroll
+  for (row = 0; row < height; row++) {
+#pragma unroll
+    for (col = 0; col < width; col++) {
+      int sum;
+
+      sum = src[col + 0 * srcStride] * c[0];
+      sum += src[col + 1 * srcStride] * c[1];
+      sum += src[col + 2 * srcStride] * c[2];
+      sum += src[col + 3 * srcStride] * c[3];
+      if (N == 8) {
+        sum += src[col + 4 * srcStride] * c[4];
+        sum += src[col + 5 * srcStride] * c[5];
+        sum += src[col + 6 * srcStride] * c[6];
+        sum += src[col + 7 * srcStride] * c[7];
+      }
+
+      int16_t val = (int16_t)((sum) >> shift);
+      dst[col] = val;
+    }
+
+    src += srcStride;
+    dst += dstStride;
+  }
+}
+
+void chroma_420_filter_vss_impl(const int16_t *src, intptr_t srcStride,
+                                int16_t *dst, intptr_t dstStride,
+                                int coeffIdx) {
+  interp_vert_ss_c<4, 4, 4>(src, srcStride, dst, dstStride, coeffIdx);
 }

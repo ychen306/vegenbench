@@ -25,4 +25,6 @@ void idct8_partial(const int16_t* __restrict__ src,
     int* __restrict__ O0, int* __restrict__ O1, int* __restrict__ O2, int *__restrict__ O3
     );
 
+void chroma_420_filter_vss_impl(const int16_t* src, intptr_t srcStride, int16_t* dst, intptr_t dstStride, int coeffIdx);
+
 #endif // end KERNELS_H
