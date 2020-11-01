@@ -30,10 +30,15 @@ void bench_chroma_vert() __attribute__((always_inline)) {
     template run<Vec<int16_t, 4*4*SrcStride>, Vec<int16_t, 4*4*DstStride> >(std::cout);
 }
 
+void fft15_1(FFTComplex *__restrict__ out, FFTComplex *__restrict__ in, FFTComplex *__restrict__ exptab) {
+  return fft15(out, in, exptab, 1);
+}
+
 int main() {
   MAKE_BENCH(g722_apply_qmf).run<Vec<int16_t, 12 * 2>, Vec<int32_t, 2>>(std::cout);
   MAKE_BENCH(fft4).run<Vec<FFTComplex, 4>>(std::cout);
   MAKE_BENCH(fft8).run<Vec<FFTComplex, 8>>(std::cout);
+  MAKE_BENCH(fft15_1).run<Vec<FFTComplex, 15>, Vec<FFTComplex, 15>, Vec<FFTComplex, 22>>(std::cout);
   //bench_idct<1>();
   bench_idct<4>();
   //bench_idct<8>();
@@ -46,4 +51,5 @@ int main() {
     i32x8, i32x8, i32x8, i32x8
     >(std::cout);
   bench_chroma_vert<4, 4>();
+  MAKE_BENCH(imdct36).run<Vec<float, 17*32+1>, Vec<float, 4*5>, Vec<float, 18>, Vec<float, 38>>(std::cout);
 }

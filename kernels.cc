@@ -60,6 +60,8 @@ void g722_apply_qmf(const int16_t *__restrict__ prev_samples,
     (dim) = (are) * (bim) + (aim) * (bre);                                     \
   } while (0)
 
+#define CMUL3(c, a, b) CMUL((c).re, (c).im, (a).re, (a).im, (b).re, (b).im)
+
 #define BUTTERFLIES(a0, a1, a2, a3)                                            \
   {                                                                            \
     BF(t3, t5, t5, t1);                                                        \
@@ -107,6 +109,82 @@ void fft8(FFTComplex *z) {
 
   BUTTERFLIES(z[0], z[2], z[4], z[6]);
   TRANSFORM(z[1], z[3], z[5], z[7], sqrthalf, sqrthalf);
+}
+
+
+static void fft5(FFTComplex *out, FFTComplex *in, FFTComplex exptab[2]) __attribute__((always_inline))
+{
+    FFTComplex z0[4], t[6];
+
+    t[0].re = in[3].re + in[12].re;
+    t[0].im = in[3].im + in[12].im;
+    t[1].im = in[3].re - in[12].re;
+    t[1].re = in[3].im - in[12].im;
+    t[2].re = in[6].re + in[ 9].re;
+    t[2].im = in[6].im + in[ 9].im;
+    t[3].im = in[6].re - in[ 9].re;
+    t[3].re = in[6].im - in[ 9].im;
+
+    out[0].re = in[0].re + in[3].re + in[6].re + in[9].re + in[12].re;
+    out[0].im = in[0].im + in[3].im + in[6].im + in[9].im + in[12].im;
+
+    t[4].re = exptab[0].re * t[2].re - exptab[1].re * t[0].re;
+    t[4].im = exptab[0].re * t[2].im - exptab[1].re * t[0].im;
+    t[0].re = exptab[0].re * t[0].re - exptab[1].re * t[2].re;
+    t[0].im = exptab[0].re * t[0].im - exptab[1].re * t[2].im;
+    t[5].re = exptab[0].im * t[3].re - exptab[1].im * t[1].re;
+    t[5].im = exptab[0].im * t[3].im - exptab[1].im * t[1].im;
+    t[1].re = exptab[0].im * t[1].re + exptab[1].im * t[3].re;
+    t[1].im = exptab[0].im * t[1].im + exptab[1].im * t[3].im;
+
+    z0[0].re = t[0].re - t[1].re;
+    z0[0].im = t[0].im - t[1].im;
+    z0[1].re = t[4].re + t[5].re;
+    z0[1].im = t[4].im + t[5].im;
+
+    z0[2].re = t[4].re - t[5].re;
+    z0[2].im = t[4].im - t[5].im;
+    z0[3].re = t[0].re + t[1].re;
+    z0[3].im = t[0].im + t[1].im;
+
+    out[1].re = in[0].re + z0[3].re;
+    out[1].im = in[0].im + z0[0].im;
+    out[2].re = in[0].re + z0[2].re;
+    out[2].im = in[0].im + z0[1].im;
+    out[3].re = in[0].re + z0[1].re;
+    out[3].im = in[0].im + z0[2].im;
+    out[4].re = in[0].re + z0[0].re;
+    out[4].im = in[0].im + z0[3].im;
+}
+
+void fft15(FFTComplex *__restrict__ out, FFTComplex *__restrict__ in, FFTComplex *__restrict__ exptab, ptrdiff_t stride)
+{
+    int k;
+    FFTComplex tmp1[5], tmp2[5], tmp3[5];
+
+    fft5(tmp1, in + 0, exptab + 19);
+    fft5(tmp2, in + 1, exptab + 19);
+    fft5(tmp3, in + 2, exptab + 19);
+
+#pragma unroll
+    for (k = 0; k < 5; k++) {
+        FFTComplex t[2];
+
+        CMUL3(t[0], tmp2[k], exptab[k]);
+        CMUL3(t[1], tmp3[k], exptab[2 * k]);
+        out[stride*k].re = tmp1[k].re + t[0].re + t[1].re;
+        out[stride*k].im = tmp1[k].im + t[0].im + t[1].im;
+
+        CMUL3(t[0], tmp2[k], exptab[k + 5]);
+        CMUL3(t[1], tmp3[k], exptab[2 * (k + 5)]);
+        out[stride*(k + 5)].re = tmp1[k].re + t[0].re + t[1].re;
+        out[stride*(k + 5)].im = tmp1[k].im + t[0].im + t[1].im;
+
+        CMUL3(t[0], tmp2[k], exptab[k + 10]);
+        CMUL3(t[1], tmp3[k], exptab[2 * k + 5]);
+        out[stride*(k + 10)].re = tmp1[k].re + t[0].re + t[1].re;
+        out[stride*(k + 10)].im = tmp1[k].im + t[0].im + t[1].im;
+    }
 }
 
 // https://github.com/FFmpeg/FFmpeg/blob/e409262837712016097c187e97bf99aadf6a4cdf/libavutil/common.h#L154-L163
@@ -378,7 +456,8 @@ void interp_vert_ss_c(const int16_t *__restrict__ src, intptr_t srcStride,
         sum += src[col + 7 * srcStride] * c[7];
       }
 
-      int16_t val = (int16_t)((sum) >> shift);
+      //int16_t val = (int16_t)((sum) >> shift);
+      int16_t val = saturate_i16((sum) >> shift);
       dst[col] = val;
     }
 
@@ -390,5 +469,129 @@ void interp_vert_ss_c(const int16_t *__restrict__ src, intptr_t srcStride,
 void chroma_420_filter_vss_impl(const int16_t *src, intptr_t srcStride,
                                 int16_t *dst, intptr_t dstStride,
                                 int coeffIdx) {
-  interp_vert_ss_c<4, 4, 4>(src, srcStride, dst, dstStride, coeffIdx);
+  interp_vert_ss_c<4, 4, 8>(src, srcStride, dst, dstStride, coeffIdx);
 }
+
+#define INTFLOAT float
+#define SUINTFLOAT float
+#define MULH3(x, y, s) ((s)*(y)*(x))
+#define MULLx(x, y, s) ((x)*(y))
+#define FRAC_BITS 0
+#define FIXHR(x)        ((float)(x))
+#define FIXR(x)        ((float)(x))
+#define C1 FIXHR(0.98480775301220805936/2)
+#define C2 FIXHR(0.93969262078590838405/2)
+#define C3 FIXHR(0.86602540378443864676/2)
+#define C4 FIXHR(0.76604444311897803520/2)
+#define C5 FIXHR(0.64278760968653932632/2)
+#define C6 FIXHR(0.5/2)
+#define C7 FIXHR(0.34202014332566873304/2)
+#define C8 FIXHR(0.17364817766693034885/2)
+#define FFALIGN(x, a) (((x)+(a)-1)&~((a)-1))
+#define MDCT_BUF_SIZE FFALIGN(36, 2*4)
+#define SHR(a,b)       ((a)*(1.0f/(1<<(b))))
+#define SBLIMIT 32
+static const INTFLOAT icos36h[9] = {
+    FIXHR(0.50190991877167369479/2),
+    FIXHR(0.51763809020504152469/2), //0
+    FIXHR(0.55168895948124587824/2),
+    FIXHR(0.61038729438072803416/2),
+    FIXHR(0.70710678118654752439/2), //1
+    FIXHR(0.87172339781054900991/2),
+    FIXHR(1.18310079157624925896/4),
+    FIXHR(1.93185165257813657349/4), //2
+//    FIXHR(5.73685662283492756461),
+};
+
+static const INTFLOAT icos36[9] = {
+    FIXR(0.50190991877167369479),
+    FIXR(0.51763809020504152469), //0
+    FIXR(0.55168895948124587824),
+    FIXR(0.61038729438072803416),
+    FIXR(0.70710678118654752439), //1
+    FIXR(0.87172339781054900991),
+    FIXR(1.18310079157624925896),
+    FIXR(1.93185165257813657349), //2
+    FIXR(5.73685662283492756461),
+};
+
+void imdct36(INTFLOAT *__restrict__ out, INTFLOAT * __restrict__ buf, SUINTFLOAT *__restrict__ in, INTFLOAT *__restrict__ win)
+{
+    int i, j;
+    SUINTFLOAT t0, t1, t2, t3, s0, s1, s2, s3;
+    SUINTFLOAT tmp[18], *tmp1, *in1;
+
+    for (i = 17; i >= 1; i--)
+        in[i] += in[i-1];
+    for (i = 17; i >= 3; i -= 2)
+        in[i] += in[i-2];
+
+    for (j = 0; j < 2; j++) {
+        tmp1 = tmp + j;
+        in1 = in + j;
+
+        t2 = in1[2*4] + in1[2*8] - in1[2*2];
+
+        t3 = in1[2*0] + SHR(in1[2*6],1);
+        t1 = in1[2*0] - in1[2*6];
+        tmp1[ 6] = t1 - SHR(t2,1);
+        tmp1[16] = t1 + t2;
+
+        t0 = MULH3(in1[2*2] + in1[2*4] ,    C2, 2);
+        t1 = MULH3(in1[2*4] - in1[2*8] , -2*C8, 1);
+        t2 = MULH3(in1[2*2] + in1[2*8] ,   -C4, 2);
+
+        tmp1[10] = t3 - t0 - t2;
+        tmp1[ 2] = t3 + t0 + t1;
+        tmp1[14] = t3 + t2 - t1;
+
+        tmp1[ 4] = MULH3(in1[2*5] + in1[2*7] - in1[2*1], -C3, 2);
+        t2 = MULH3(in1[2*1] + in1[2*5],    C1, 2);
+        t3 = MULH3(in1[2*5] - in1[2*7], -2*C7, 1);
+        t0 = MULH3(in1[2*3], C3, 2);
+
+        t1 = MULH3(in1[2*1] + in1[2*7],   -C5, 2);
+
+        tmp1[ 0] = t2 + t3 + t0;
+        tmp1[12] = t2 + t1 - t0;
+        tmp1[ 8] = t3 - t1 - t0;
+    }
+
+    i = 0;
+    for (j = 0; j < 4; j++) {
+        t0 = tmp[i];
+        t1 = tmp[i + 2];
+        s0 = t1 + t0;
+        s2 = t1 - t0;
+
+        t2 = tmp[i + 1];
+        t3 = tmp[i + 3];
+        s1 = MULH3(t3 + t2, icos36h[    j], 2);
+        s3 = MULLx(t3 - t2, icos36 [8 - j], FRAC_BITS);
+
+        t0 = s0 + s1;
+        t1 = s0 - s1;
+        out[(9 + j) * SBLIMIT] = MULH3(t1, win[     9 + j], 1) + buf[4*(9 + j)];
+        out[(8 - j) * SBLIMIT] = MULH3(t1, win[     8 - j], 1) + buf[4*(8 - j)];
+        buf[4 * ( 9 + j     )] = MULH3(t0, win[MDCT_BUF_SIZE/2 + 9 + j], 1);
+        buf[4 * ( 8 - j     )] = MULH3(t0, win[MDCT_BUF_SIZE/2 + 8 - j], 1);
+
+        t0 = s2 + s3;
+        t1 = s2 - s3;
+        out[(9 + 8 - j) * SBLIMIT] = MULH3(t1, win[     9 + 8 - j], 1) + buf[4*(9 + 8 - j)];
+        out[         j  * SBLIMIT] = MULH3(t1, win[             j], 1) + buf[4*(        j)];
+        buf[4 * ( 9 + 8 - j     )] = MULH3(t0, win[MDCT_BUF_SIZE/2 + 9 + 8 - j], 1);
+        buf[4 * (         j     )] = MULH3(t0, win[MDCT_BUF_SIZE/2         + j], 1);
+        i += 4;
+    }
+
+    s0 = tmp[16];
+    s1 = MULH3(tmp[17], icos36h[4], 2);
+    t0 = s0 + s1;
+    t1 = s0 - s1;
+    out[(9 + 4) * SBLIMIT] = MULH3(t1, win[     9 + 4], 1) + buf[4*(9 + 4)];
+    out[(8 - 4) * SBLIMIT] = MULH3(t1, win[     8 - 4], 1) + buf[4*(8 - 4)];
+    buf[4 * ( 9 + 4     )] = MULH3(t0, win[MDCT_BUF_SIZE/2 + 9 + 4], 1);
+    buf[4 * ( 8 - 4     )] = MULH3(t0, win[MDCT_BUF_SIZE/2 + 8 - 4], 1);
+}
+
