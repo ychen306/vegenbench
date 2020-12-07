@@ -12,7 +12,7 @@ void chroma_420_filter_vss(int16_t *src, int16_t *dst) {
 template <size_t SrcStride, size_t DstStride>
 void bench_chroma_vert() __attribute__((always_inline)) {
   std::string benchName = "chroma_420_filter_vss(src-stride="+std::to_string(SrcStride) +
-    ",dst-stride="+std::to_string(DstStride) + ")";
+    ";dst-stride="+std::to_string(DstStride) + ")";
   Bench<decltype(chroma_420_filter_vss<SrcStride, DstStride>),
     chroma_420_filter_vss<SrcStride, DstStride>>(benchName).
     template run<Vec<int16_t, 4*4*SrcStride>, Vec<int16_t, 4*4*DstStride> >(std::cout);
