@@ -11,11 +11,12 @@ endif
 LIBASAN = DYLD_INSERT_LIBRARIES=/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib
 LIBASAN =
 
+EXES = bench bench-ref dotprod dotprod-ref
 
-all: bench bench-ref
+all: $(EXES)
 
-report: bench bench-ref
-	python get-speedup.py
+report: $(EXES)
+	python3 get-speedup.py
 
 bench: kernels.o bench.o
 	$(CXX) -o $@ $^
@@ -25,6 +26,15 @@ bench-ref: kernels-ref.o bench.o
 
 bench.o: bench.cc bench.h kernels.h
 	$(CXX) -O3 -o $@ $< -std=c++14 -c
+
+dotprod.o: dotprod.cc bench.h kernels.h
+	$(CXX) -O3 -o $@ $< -std=c++14 -c
+
+dotprod-ref: kernels-ref.o dotprod.o
+	$(CXX) -o $@ $^
+
+dotprod: kernels.o dotprod.o
+	$(CXX) -o $@ $^
 
 kernels.o: kernels.cc kernels.h
 	$(LIBASAN) $(OPTCXX) $(OPTFLAGS) -o $@ -c $< -std=c++11

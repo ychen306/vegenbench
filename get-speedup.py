@@ -7,8 +7,14 @@ def get_perf(stdout):
     perf[kernel] = float(time)
   return perf
 
-opt = get_perf(subprocess.check_output(['./bench']))
-ref = get_perf(subprocess.check_output(['./bench-ref']))
+def report(test_suite):
+  opt = get_perf(subprocess.check_output(['./%s' % test_suite]))
+  ref = get_perf(subprocess.check_output(['./%s-ref' % test_suite]))
+  for kernel, t in opt.items():
+    print(kernel, ref[kernel] / t)
 
-for kernel, t in opt.items():
-  print(kernel, ref[kernel] / t)
+print('=========== DSP kernels ==============')
+report('bench')
+
+print('=========== OpenCV dot-product kernels ==============')
+report('dotprod')
