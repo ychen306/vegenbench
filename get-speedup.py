@@ -18,3 +18,6 @@ report('bench')
 
 print('=========== OpenCV dot-product kernels ==============')
 report('dotprod')
+
+print('=========== Synthetic codegen tests ==============')
+report('synthetic')
