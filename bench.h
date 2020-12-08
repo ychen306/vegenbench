@@ -59,8 +59,8 @@ double bench(unsigned iters = 100) {
   std::tuple<VecTypes...> buffers;
   create_buffers(buffers, iters);
 
-  constexpr unsigned trials = 128;
-  constexpr unsigned warmups = 10;
+  constexpr unsigned warmups = 100;
+  constexpr unsigned trials = 1024;
   std::vector<double> timings;
 
   auto combine = [](unsigned lo, unsigned hi) -> uint64_t {

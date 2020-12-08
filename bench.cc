@@ -19,11 +19,16 @@ void bench_chroma_vert() __attribute__((always_inline)) {
 }
 
 int main() {
+  MAKE_BENCH(dot_u8_by_4).run<Vec<uint8_t, 64>, Vec<uint8_t, 64>, Vec<uint32_t, 16>>(std::cout);
+  MAKE_BENCH(dot_i8_by_4).run<Vec<int8_t, 64>, Vec<int8_t, 64>, Vec<int32_t, 16>>(std::cout);
+  MAKE_BENCH(dot_i32_by_2).run<Vec<int32_t, 8>, Vec<int32_t, 8>, Vec<int64_t, 4>>(std::cout);
+  MAKE_BENCH(dot_i16_by_2).run<Vec<int16_t, 16>, Vec<int16_t, 16>, Vec<int32_t, 8>>(std::cout);
+
   MAKE_BENCH(fft4).run<Vec<FFTComplex, 4>>(std::cout);
   MAKE_BENCH(fft8).run<Vec<FFTComplex, 8>>(std::cout);
   MAKE_BENCH(sbc_analyze_4).run<Vec<int16_t, 64>, Vec<int32_t, 64>, Vec<int16_t, 64>>(std::cout);
   MAKE_BENCH(idct8).run<Vec<int16_t, 8*8>, Vec<int16_t, 8*8>>(std::cout);
   MAKE_BENCH(idct4).run<Vec<int16_t, 4*4>, Vec<int16_t, 4*4>>(std::cout);
   bench_chroma_vert<4, 4>();
-  MAKE_BENCH(imdct36).run<Vec<float, 17*32+1>, Vec<float, 4*5>, Vec<float, 18>, Vec<float, 38>>(std::cout);
+//MAKE_BENCH(imdct36).run<Vec<float, 17*32+1>, Vec<float, 4*5>, Vec<float, 18>, Vec<float, 38>>(std::cout);
 }

@@ -268,7 +268,7 @@ static const INTFLOAT icos36h[9] = {
     FIXHR(0.70710678118654752439 / 2), // 1
     FIXHR(0.87172339781054900991 / 2), FIXHR(1.18310079157624925896 / 4),
     FIXHR(1.93185165257813657349 / 4), // 2
-    //    FIXHR(5.73685662283492756461),
+                                       //    FIXHR(5.73685662283492756461),
 };
 
 static const INTFLOAT icos36[9] = {
@@ -360,4 +360,41 @@ void imdct36(INTFLOAT *__restrict__ out, INTFLOAT *__restrict__ buf,
   out[(8 - 4) * SBLIMIT] = MULH3(t1, win[8 - 4], 1) + buf[4 * (8 - 4)];
   buf[4 * (9 + 4)] = MULH3(t0, win[MDCT_BUF_SIZE / 2 + 9 + 4], 1);
   buf[4 * (8 - 4)] = MULH3(t0, win[MDCT_BUF_SIZE / 2 + 8 - 4], 1);
+}
+
+template <typename InTy, typename OutTy, size_t N>
+void dotprod_expand(InTy *__restrict__ a, InTy *__restrict__ b,
+                    OutTy *__restrict__ c) __attribute__((always_inline)) {
+#pragma unroll
+  for (int i = 0; i < N / 4; i++) {
+    c[i] = ((OutTy)a[4 * i]) * ((OutTy)b[4 * i]) +
+           ((OutTy)a[i * 4 + 1]) * ((OutTy)b[i * 4 + 1]) +
+           ((OutTy)a[i * 4 + 2]) * ((OutTy)b[i * 4 + 2]) +
+           ((OutTy)a[i * 4 + 3]) * ((OutTy)b[i * 4 + 3]);
+  }
+}
+
+template <typename InTy, typename OutTy, size_t N>
+inline void dotprod(InTy *__restrict__ a, InTy *__restrict__ b,
+                             OutTy *__restrict__ c) {
+#pragma unroll
+  for (int i = 0; i < N / 2; i++)
+    c[i] = ((OutTy)a[2 * i]) * ((OutTy)b[2 * i]) +
+           ((OutTy)a[i * 2 + 1]) * ((OutTy)b[i * 2 + 1]);
+}
+
+void dot_i8_by_4(int8_t *a, int8_t *b, int32_t *c) {
+  dotprod_expand<int8_t, int32_t, 64>(a, b, c);
+}
+
+void dot_u8_by_4(uint8_t *a, uint8_t *b, uint32_t *c) {
+  dotprod_expand<uint8_t, uint32_t, 64>(a, b, c);
+}
+
+void dot_i32_by_2(int32_t *a, int32_t *b, int64_t *c) {
+  dotprod<int32_t, int64_t, 8>(a, b, c);
+}
+
+void dot_i16_by_2(int16_t *a, int16_t *b, int32_t *c) {
+  dotprod<int16_t, int32_t, 16>(a, b, c);
 }
