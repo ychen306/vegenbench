@@ -93,7 +93,7 @@ double bench(unsigned iters = 100) {
       timings.push_back(elapsed);
   }
   std::sort(timings.begin(), timings.end());
-  return (timings[trials / 2] + timings[trials/2+1])/2.0;
+  return (timings[100] + timings[101])/2.0;
 }
 
 template <typename FuncTy, FuncTy Func>

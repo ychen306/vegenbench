@@ -522,16 +522,16 @@ void test_hadd_i32(int32_t *__restrict__ a, int32_t *__restrict__ b,
                    int32_t *__restrict__ c) {
   c[0] = a[0] + a[1];
   c[1] = a[2] + a[3];
-  c[2] = b[0] + a[1];
-  c[3] = b[2] + a[3];
+  c[2] = b[0] + b[1];
+  c[3] = b[2] + b[3];
 }
 
 void test_hsub_i32(int32_t *__restrict__ a, int32_t *__restrict__ b,
                    int32_t *__restrict__ c) {
-  c[0] = b[0] - a[1];
-  c[1] = b[2] - a[3];
-  c[2] = b[0] - a[1];
-  c[3] = b[2] - a[3];
+  c[0] = a[0] - a[1];
+  c[1] = a[2] - a[3];
+  c[2] = b[0] - b[1];
+  c[3] = b[2] - b[3];
 }
 
 void test_pmaddubs(int8_t *__restrict__ a, uint8_t *__restrict__ b,
