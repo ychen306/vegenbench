@@ -385,11 +385,11 @@ inline void dotprod(InTy *__restrict__ a, InTy *__restrict__ b,
 }
 
 void dot_i8_by_4(int8_t *a, int8_t *b, int32_t *c) {
-  dotprod_expand<int8_t, int32_t, 64>(a, b, c);
+  dotprod_expand<int8_t, int32_t, 32>(a, b, c);
 }
 
 void dot_u8_by_4(uint8_t *a, uint8_t *b, uint32_t *c) {
-  dotprod_expand<uint8_t, uint32_t, 64>(a, b, c);
+  dotprod_expand<uint8_t, uint32_t, 32>(a, b, c);
 }
 
 void dot_i32_by_2(int32_t *a, int32_t *b, int64_t *c) {
