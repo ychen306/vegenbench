@@ -480,8 +480,8 @@ void test_haddps(float *__restrict__ a, float *__restrict__ b,
                  float *__restrict__ c) {
   c[0] = a[0] + a[1];
   c[1] = a[2] + a[3];
-  c[2] = b[0] + a[1];
-  c[3] = b[2] + a[3];
+  c[2] = b[0] + b[1];
+  c[3] = b[2] + b[3];
 }
 
 void test_hsubpd(double *__restrict__ a, double *__restrict__ b,
@@ -494,8 +494,8 @@ void test_hsubps(float *__restrict__ a, float *__restrict__ b,
                  float *__restrict__ c) {
   c[0] = a[0] - a[1];
   c[1] = a[2] - a[3];
-  c[2] = b[0] - a[1];
-  c[3] = b[2] - a[3];
+  c[2] = b[0] - b[1];
+  c[3] = b[2] - b[3];
 }
 
 void test_hadd_i16(int16_t *__restrict__ a, int16_t *__restrict__ b,
