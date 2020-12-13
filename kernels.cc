@@ -429,10 +429,17 @@ void test_fmaddsub_pd(double *__restrict__ a, double *__restrict__ b,
                       double *__restrict__ c) {
   c[0] = a[0] * b[0] - c[0];
   c[1] = a[1] * b[1] + c[1];
+  c[2] = a[2] * b[2] - c[2];
+  c[3] = a[3] * b[3] + c[3];
 }
 
 void test_fmaddsub_ps(float *__restrict__ a, float *__restrict__ b,
                       float *__restrict__ c) {
+  c[0] = a[0] * b[0] - c[0];
+  c[1] = a[1] * b[1] + c[1];
+  c[2] = a[2] * b[2] - c[2];
+  c[3] = a[3] * b[3] + c[3];
+  c += 4; a += 4; b += 4;
   c[0] = a[0] * b[0] - c[0];
   c[1] = a[1] * b[1] + c[1];
   c[2] = a[2] * b[2] - c[2];
@@ -443,30 +450,30 @@ void test_fmaddsub_ps(float *__restrict__ a, float *__restrict__ b,
 template <typename T> T abs(T x) { return x > 0 ? x : -x; }
 
 void test_abs_pd(double *__restrict__ a, double *__restrict__ b) {
-  for (int i = 0; i < 2; i++)
+  for (int i = 0; i < 4; i++)
     a[i] = abs(b[i]);
 }
 
 void test_abs_ps(float *__restrict__ a, float *__restrict__ b) {
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 8; i++)
     a[i] = abs(b[i]);
 }
 
 void test_abs_i8(int8_t *__restrict__ a, int8_t *__restrict__ b) {
 #pragma unroll
-  for (int i = 0; i < 16; i++)
+  for (int i = 0; i < 32; i++)
     a[i] = abs(b[i]);
 }
 
 void test_abs_i16(int16_t *__restrict__ a, int16_t *__restrict__ b) {
 #pragma unroll
-  for (int i = 0; i < 8; i++)
+  for (int i = 0; i < 16; i++)
     a[i] = abs(b[i]);
 }
 
 void test_abs_i32(int32_t *__restrict__ a, int32_t *__restrict__ b) {
 #pragma unroll
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 8; i++)
     a[i] = abs(b[i]);
 }
 
@@ -474,10 +481,17 @@ void test_haddpd(double *__restrict__ a, double *__restrict__ b,
                  double *__restrict__ c) {
   c[0] = a[0] + a[1];
   c[1] = b[0] + b[1];
+  c[2] = a[2] + a[3];
+  c[3] = b[2] + b[3];
 }
 
 void test_haddps(float *__restrict__ a, float *__restrict__ b,
                  float *__restrict__ c) {
+  c[0] = a[0] + a[1];
+  c[1] = a[2] + a[3];
+  c[2] = b[0] + b[1];
+  c[3] = b[2] + b[3];
+  c += 4; a += 4; b += 4;
   c[0] = a[0] + a[1];
   c[1] = a[2] + a[3];
   c[2] = b[0] + b[1];
@@ -488,6 +502,8 @@ void test_hsubpd(double *__restrict__ a, double *__restrict__ b,
                  double *__restrict__ c) {
   c[0] = a[0] - a[1];
   c[1] = b[0] - b[1];
+  c[2] = a[2] - a[3];
+  c[3] = b[2] - b[3];
 }
 
 void test_hsubps(float *__restrict__ a, float *__restrict__ b,
@@ -496,10 +512,24 @@ void test_hsubps(float *__restrict__ a, float *__restrict__ b,
   c[1] = a[2] - a[3];
   c[2] = b[0] - b[1];
   c[3] = b[2] - b[3];
+  c += 4; a += 4; b += 4;
+  c[0] = a[0] - a[1];
+  c[1] = a[2] - a[3];
+  c[2] = b[0] - b[1];
+  c[3] = b[2] - b[3];
 }
 
 void test_hadd_i16(int16_t *__restrict__ a, int16_t *__restrict__ b,
                    int16_t *__restrict__ c) {
+#pragma unroll
+  for (int i = 0; i < 4; i++)
+    c[i] = a[2 * i] + a[2 * i + 1];
+#pragma unroll
+  for (int i = 0; i < 4; i++)
+    c[4 + i] = b[2 * i] + b[2 * i + 1];
+
+  c += 8; a += 8; b += 8;
+
 #pragma unroll
   for (int i = 0; i < 4; i++)
     c[i] = a[2 * i] + a[2 * i + 1];
@@ -516,10 +546,26 @@ void test_hsub_i16(int16_t *__restrict__ a, int16_t *__restrict__ b,
 #pragma unroll
   for (int i = 0; i < 4; i++)
     c[4 + i] = b[2 * i] - b[2 * i + 1];
+
+  c += 8; a += 8; b += 8;
+
+#pragma unroll
+  for (int i = 0; i < 4; i++)
+    c[i] = a[2 * i] + a[2 * i + 1];
+#pragma unroll
+  for (int i = 0; i < 4; i++)
+    c[4 + i] = b[2 * i] + b[2 * i + 1];
 }
 
 void test_hadd_i32(int32_t *__restrict__ a, int32_t *__restrict__ b,
                    int32_t *__restrict__ c) {
+  c[0] = a[0] + a[1];
+  c[1] = a[2] + a[3];
+  c[2] = b[0] + b[1];
+  c[3] = b[2] + b[3];
+
+  c += 4; a += 4; b += 4;
+
   c[0] = a[0] + a[1];
   c[1] = a[2] + a[3];
   c[2] = b[0] + b[1];
@@ -532,12 +578,19 @@ void test_hsub_i32(int32_t *__restrict__ a, int32_t *__restrict__ b,
   c[1] = a[2] - a[3];
   c[2] = b[0] - b[1];
   c[3] = b[2] - b[3];
+
+  c += 4; a += 4; b += 4;
+
+  c[0] = a[0] - a[1];
+  c[1] = a[2] - a[3];
+  c[2] = b[0] - b[1];
+  c[3] = b[2] - b[3];
 }
 
 void test_pmaddubs(int8_t *__restrict__ a, uint8_t *__restrict__ b,
                    int16_t *__restrict__ c) __attribute__((noinline)) {
 #pragma unroll
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 64; i++) {
     c[i] = saturate_i16(a[2 * i] * b[2 * i] + a[2 * i + 1] * b[2 * i + 1]);
   }
 }
@@ -545,7 +598,7 @@ void test_pmaddubs(int8_t *__restrict__ a, uint8_t *__restrict__ b,
 void test_pmaddwd(int16_t *__restrict__ a, int16_t *__restrict__ b,
                   int32_t *__restrict__ c) {
 #pragma unroll
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 64; i++) {
     c[i] = a[2 * i] * b[2 * i] + a[2 * i + 1] * b[2 * i + 1];
   }
 }
