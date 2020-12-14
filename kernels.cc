@@ -120,7 +120,7 @@ void idct8(const int16_t *__restrict__ src, int16_t *__restrict__ dst) {
   int j, k;
   int E[4], O[4];
   int EE[2], EO[2];
-  constexpr int shift = 7;
+  constexpr int shift = 2 + 8 - 8;
   constexpr int add = 1 << (shift - 1);
 
   constexpr int line = 8;
@@ -166,7 +166,7 @@ void idct4(const int16_t *__restrict__ src, int16_t *__restrict__ dst) {
   int j;
   int E[2], O[2];
   constexpr int line = 4;
-  constexpr int shift = 7;
+  constexpr int shift = 1 + 8 - 8;
   constexpr int add = 1 << (shift - 1);
 
   for (j = 0; j < line; j++) {
