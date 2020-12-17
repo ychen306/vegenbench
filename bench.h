@@ -1,13 +1,53 @@
 #ifndef BENCH_H
 
 #define BENCH_H
-#include <string>
 #include <algorithm>
 #include <memory>
 #include <stddef.h>
+#include <string>
 #include <utility>
 #include <vector>
 
+static inline uint64_t read_arm_timer() {
+  int64_t virtual_timer_value;
+  asm volatile("mrs %0, cntvct_el0" : "=r"(virtual_timer_value));
+  return virtual_timer_value;
+}
+
+static inline uint64_t timer_begin() {
+#if defined(__x86_64__) || defined(__amd64__)
+  unsigned lo, hi;
+  // read begin timer
+  asm volatile("CPUID\n\t" /*serialize*/
+               "RDTSC\n\t" /*read the clock*/
+               "mov %%edx, %0\n\t"
+               "mov %%eax, %1\n\t"
+               : "=r"(begin_hi), "=r"(begin_lo)::"%rax", "%rbx", "%rcx",
+                 "%rdx");
+  return (uint64_t)lo | ((uint64_t)hi << 32);
+#elif defined(__aarch64__)
+  return read_arm_timer();
+#else
+#error Unsupported architecture
+#endif
+}
+
+static inline uint64_t timer_end() {
+#if defined(__x86_64__) || defined(__amd64__)
+  unsigned lo, hi;
+  // read end timer
+  asm volatile("RDTSCP\n\t" /*read the clock*/
+               "mov %%edx, %0\n\t"
+               "mov %%eax, %1\n\t"
+               "CPUID\n\t"
+               : "=r"(hi), "=r"(lo)::"%rax", "%rbx", "%rcx", "%rdx");
+  return (uint64_t)lo | ((uint64_t)hi << 32);
+#elif defined(__aarch64__)
+  return read_arm_timer();
+#else
+#error Unsupported architecture
+#endif
+}
 
 // implementation details, users never invoke these directly
 namespace detail {
@@ -70,46 +110,31 @@ double bench(unsigned iters = 100) {
   for (int k = 0; k < trials + warmups; k++) {
     unsigned begin_lo, begin_hi, end_lo, end_hi;
 
-    // read begin timer
-    asm volatile("CPUID\n\t" /*serialize*/
-                 "RDTSC\n\t" /*read the clock*/
-                 "mov %%edx, %0\n\t"
-                 "mov %%eax, %1\n\t"
-                 : "=r"(begin_hi), "=r"(begin_lo)::"%rax", "%rbx", "%rcx",
-                   "%rdx");
+    uint64_t begin = timer_begin();
 
     for (int i = 0; i < iters; i++)
       call(Func, buffers, i);
 
-    // read end timer
-    asm volatile("RDTSCP\n\t" /*read the clock*/
-                 "mov %%edx, %0\n\t"
-                 "mov %%eax, %1\n\t"
-                 "CPUID\n\t"
-                 : "=r"(end_hi), "=r"(end_lo)::"%rax", "%rbx", "%rcx", "%rdx");
-
-    double elapsed = combine(end_lo, end_hi) - combine(begin_lo, begin_hi);
+    uint64_t end = timer_end();
+    double elapsed = end - begin;
     if (k >= warmups)
       timings.push_back(elapsed);
   }
   std::sort(timings.begin(), timings.end());
-  return (timings[trials / 2] + timings[trials/2+1])/2.0;
+  return (timings[trials / 2] + timings[trials / 2 + 1]) / 2.0;
 }
 
-template <typename FuncTy, FuncTy Func>
-struct Bench {
+template <typename FuncTy, FuncTy Func> struct Bench {
   std::string name;
   Bench(std::string name) : name(name) {}
 
-  template<typename... VecTypes, typename OS_TY>
-  void run(OS_TY &os) {
+  template <typename... VecTypes, typename OS_TY> void run(OS_TY &os) {
     double a = bench<FuncTy, Func, VecTypes...>(200),
            b = bench<FuncTy, Func, VecTypes...>(100);
     double it_per_cyc = (a - b) / 100;
     os << name << "," << it_per_cyc << '\n';
   }
 };
-
 
 #define MAKE_BENCH(FUNC) Bench<decltype(FUNC), FUNC>(#FUNC)
 
