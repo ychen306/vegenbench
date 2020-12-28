@@ -6,48 +6,6 @@
 #define MAC16(rt, ra, rb) rt += (ra) * (rb)
 #define MUL16(ra, rb) ((ra) * (rb))
 
-// https://github.com/FFmpeg/FFmpeg/blob/a0ac49e38ee1d1011c394d7be67d0f08b2281526/libavcodec/g722dsp.c
-// https://github.com/FFmpeg/FFmpeg/blob/a0ac49e38ee1d1011c394d7be67d0f08b2281526/libavcodec/x86/g722dsp.asm
-
-void g722_apply_qmf(const int16_t *__restrict__ prev_samples,
-                    int *__restrict__ xout) {
-  xout[1] = MUL16(*prev_samples++, 3);
-  xout[0] = MUL16(*prev_samples++, -11);
-
-  MAC16(xout[1], *prev_samples++, -11);
-  MAC16(xout[0], *prev_samples++, 53);
-
-  MAC16(xout[1], *prev_samples++, 12);
-  MAC16(xout[0], *prev_samples++, -156);
-
-  MAC16(xout[1], *prev_samples++, 32);
-  MAC16(xout[0], *prev_samples++, 362);
-
-  MAC16(xout[1], *prev_samples++, -210);
-  MAC16(xout[0], *prev_samples++, -805);
-
-  MAC16(xout[1], *prev_samples++, 951);
-  MAC16(xout[0], *prev_samples++, 3876);
-
-  MAC16(xout[1], *prev_samples++, 3876);
-  MAC16(xout[0], *prev_samples++, 951);
-
-  MAC16(xout[1], *prev_samples++, -805);
-  MAC16(xout[0], *prev_samples++, -210);
-
-  MAC16(xout[1], *prev_samples++, 362);
-  MAC16(xout[0], *prev_samples++, 32);
-
-  MAC16(xout[1], *prev_samples++, -156);
-  MAC16(xout[0], *prev_samples++, 12);
-
-  MAC16(xout[1], *prev_samples++, 53);
-  MAC16(xout[0], *prev_samples++, -11);
-
-  MAC16(xout[1], *prev_samples++, -11);
-  MAC16(xout[0], *prev_samples++, 3);
-}
-
 #define BF(x, y, a, b)                                                         \
   do {                                                                         \
     x = a - b;                                                                 \
@@ -157,35 +115,6 @@ static void fft5(FFTComplex *out, FFTComplex *in, FFTComplex exptab[2]) __attrib
     out[4].im = in[0].im + z0[3].im;
 }
 
-void fft15(FFTComplex *__restrict__ out, FFTComplex *__restrict__ in, FFTComplex *__restrict__ exptab, ptrdiff_t stride)
-{
-    int k;
-    FFTComplex tmp1[5], tmp2[5], tmp3[5];
-
-    fft5(tmp1, in + 0, exptab + 19);
-    fft5(tmp2, in + 1, exptab + 19);
-    fft5(tmp3, in + 2, exptab + 19);
-
-#pragma unroll
-    for (k = 0; k < 5; k++) {
-        FFTComplex t[2];
-
-        CMUL3(t[0], tmp2[k], exptab[k]);
-        CMUL3(t[1], tmp3[k], exptab[2 * k]);
-        out[stride*k].re = tmp1[k].re + t[0].re + t[1].re;
-        out[stride*k].im = tmp1[k].im + t[0].im + t[1].im;
-
-        CMUL3(t[0], tmp2[k], exptab[k + 5]);
-        CMUL3(t[1], tmp3[k], exptab[2 * (k + 5)]);
-        out[stride*(k + 5)].re = tmp1[k].re + t[0].re + t[1].re;
-        out[stride*(k + 5)].im = tmp1[k].im + t[0].im + t[1].im;
-
-        CMUL3(t[0], tmp2[k], exptab[k + 10]);
-        CMUL3(t[1], tmp3[k], exptab[2 * k + 5]);
-        out[stride*(k + 10)].re = tmp1[k].re + t[0].re + t[1].re;
-        out[stride*(k + 10)].im = tmp1[k].im + t[0].im + t[1].im;
-    }
-}
 
 // https://github.com/FFmpeg/FFmpeg/blob/e409262837712016097c187e97bf99aadf6a4cdf/libavutil/common.h#L154-L163
 static inline uint8_t av_clip_uint8_c(int a) {
@@ -200,47 +129,6 @@ static inline uint8_t av_clip_uint8_c(int a) {
 #define dctcoef int16_t
 #define av_clip_pixel av_clip_uint8_c
 
-void idct_add_impl(uint8_t *__restrict__ _dst, int16_t *__restrict__ _block,
-                   int stride) {
-  int i;
-  pixel *dst = (pixel *)_dst;
-  dctcoef *block = (dctcoef *)_block;
-  stride >>= sizeof(pixel) - 1;
-
-  block[0] += 1 << 5;
-
-#pragma unroll
-  for (i = 0; i < 4; i++) {
-    const SUINT z0 = block[i + 4 * 0] + (unsigned)block[i + 4 * 2];
-    const SUINT z1 = block[i + 4 * 0] - (unsigned)block[i + 4 * 2];
-    const SUINT z2 = (block[i + 4 * 1] >> 1) - (unsigned)block[i + 4 * 3];
-    const SUINT z3 = block[i + 4 * 1] + (unsigned)(block[i + 4 * 3] >> 1);
-
-    block[i + 4 * 0] = z0 + z3;
-    block[i + 4 * 1] = z1 + z2;
-    block[i + 4 * 2] = z1 - z2;
-    block[i + 4 * 3] = z0 - z3;
-  }
-
-#pragma unroll
-  for (i = 0; i < 4; i++) {
-    const SUINT z0 = block[0 + 4 * i] + (SUINT)block[2 + 4 * i];
-    const SUINT z1 = block[0 + 4 * i] - (SUINT)block[2 + 4 * i];
-    const SUINT z2 = (block[1 + 4 * i] >> 1) - (SUINT)block[3 + 4 * i];
-    const SUINT z3 = block[1 + 4 * i] + (SUINT)(block[3 + 4 * i] >> 1);
-
-    dst[i + 0 * stride] =
-        av_clip_pixel(dst[i + 0 * stride] + ((int)(z0 + z3) >> 6));
-    dst[i + 1 * stride] =
-        av_clip_pixel(dst[i + 1 * stride] + ((int)(z1 + z2) >> 6));
-    dst[i + 2 * stride] =
-        av_clip_pixel(dst[i + 2 * stride] + ((int)(z1 - z2) >> 6));
-    dst[i + 3 * stride] =
-        av_clip_pixel(dst[i + 3 * stride] + ((int)(z0 - z3) >> 6));
-  }
-
-  // memset(block, 0, 16 * sizeof(dctcoef));
-}
 
 #define SBC_COS_TABLE_FIXED_SCALE 15
 #define SBC_PROTO_FIXED_SCALE 16
@@ -332,60 +220,6 @@ void idct8(const int16_t *__restrict__ src, int16_t *__restrict__ dst) {
   }
 }
 
-void idct8_partial(const int16_t *__restrict__ src, int *__restrict__ E0,
-                   int *__restrict__ E1, int *__restrict__ E2,
-                   int *__restrict__ E3, int *__restrict__ O0,
-                   int *__restrict__ O1, int *__restrict__ O2,
-                   int *__restrict__ O3) {
-  int j, k;
-  // int E[4], O[4];
-  int EE[2], EO[2];
-  constexpr int shift = 7;
-  constexpr int add = 1 << (shift - 1);
-
-  constexpr int line = 8;
-
-#pragma unroll
-  for (j = 0; j < line; j++) {
-    /* Utilizing symmetry properties to the maximum to minimize the number of
-     * multiplications */
-    {
-      int k = 0;
-      O0[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
-              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
-    }
-    {
-      int k = 1;
-      O1[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
-              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
-    }
-    {
-      int k = 2;
-      O2[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
-              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
-    }
-    {
-      int k = 3;
-      O3[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
-              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
-    }
-
-    EO[0] = g_t8[2][0] * src[2 * line] + g_t8[6][0] * src[6 * line];
-    EO[1] = g_t8[2][1] * src[2 * line] + g_t8[6][1] * src[6 * line];
-    EE[0] = g_t8[0][0] * src[0] + g_t8[4][0] * src[4 * line];
-    EE[1] = g_t8[0][1] * src[0] + g_t8[4][1] * src[4 * line];
-
-    /* Combining even and odd terms at each hierarchy levels to calculate the
-     * final spatial domain vector */
-    E0[j] = EE[0] + EO[0];
-    E3[j] = EE[0] - EO[0];
-    E1[j] = EE[1] + EO[1];
-    E2[j] = EE[1] - EO[1];
-
-    src++;
-  }
-}
-
 static constexpr int16_t g_t4[4][4] = {{65, 65, 65, 65},
                                        {83, 36, -36, -83},
                                        {65, -65, -65, 65},
@@ -471,7 +305,7 @@ void chroma_420_filter_vss_impl(const int16_t *src, intptr_t srcStride,
                                 int coeffIdx) {
   interp_vert_ss_c<4, 4, 8>(src, srcStride, dst, dstStride, coeffIdx);
 }
-
+#if 0
 #define INTFLOAT float
 #define SUINTFLOAT float
 #define MULH3(x, y, s) ((s)*(y)*(x))
@@ -594,4 +428,4 @@ void imdct36(INTFLOAT *__restrict__ out, INTFLOAT * __restrict__ buf, SUINTFLOAT
     buf[4 * ( 9 + 4     )] = MULH3(t0, win[MDCT_BUF_SIZE/2 + 9 + 4], 1);
     buf[4 * ( 8 - 4     )] = MULH3(t0, win[MDCT_BUF_SIZE/2 + 8 - 4], 1);
 }
-
+#endif

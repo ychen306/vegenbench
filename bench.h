@@ -59,8 +59,8 @@ double bench(unsigned iters = 100) {
   std::tuple<VecTypes...> buffers;
   create_buffers(buffers, iters);
 
-  constexpr unsigned trials = 128;
-  constexpr unsigned warmups = 10;
+  constexpr unsigned trials = 1024;
+  constexpr unsigned warmups = 100;
   std::vector<double> timings;
 
   auto combine = [](unsigned lo, unsigned hi) -> uint64_t {
@@ -93,7 +93,7 @@ double bench(unsigned iters = 100) {
       timings.push_back(elapsed);
   }
   std::sort(timings.begin(), timings.end());
-  return (timings[trials / 2] + timings[trials/2+1])/2.0;
+  return (timings[200] + timings[201])/2.0;
 }
 
 template <typename FuncTy, FuncTy Func>

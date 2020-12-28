@@ -30,7 +30,7 @@ kernels.o: kernels.cc kernels.h
 	$(LIBASAN) $(OPTCXX) $(OPTFLAGS) -o $@ -c $< -std=c++11
 
 kernels-ref.o: kernels.cc kernels.h
-	$(CXX) -O3 -march=native -ffast-math -o $@ -c $< -std=c++11
+	$(CXX) -O3 -march=haswell -mavx2 -ffast-math -o $@ -c $< -std=c++11
 
 clean:
 	rm -f *.o bench bench-ref
