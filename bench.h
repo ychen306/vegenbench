@@ -103,9 +103,9 @@ struct Bench {
 
   template<typename... VecTypes, typename OS_TY>
   void run(OS_TY &os) {
-    double a = bench<FuncTy, Func, VecTypes...>(200),
-           b = bench<FuncTy, Func, VecTypes...>(100);
-    double it_per_cyc = (a - b) / 100;
+    double a = bench<FuncTy, Func, VecTypes...>(100),
+           b = bench<FuncTy, Func, VecTypes...>(50);
+    double it_per_cyc = (a - b) / 50;
     os << name << "," << it_per_cyc << '\n';
   }
 };

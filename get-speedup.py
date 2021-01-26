@@ -11,4 +11,4 @@ opt = get_perf(subprocess.check_output(['./bench']))
 ref = get_perf(subprocess.check_output(['./bench-ref']))
 
 for kernel, t in opt.items():
-  print(kernel, ref[kernel] / t)
+  print(kernel, ref[kernel] / t, ref[kernel],t)

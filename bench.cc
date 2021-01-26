@@ -41,5 +41,5 @@ int main() {
   MAKE_BENCH(idct8).run<Vec<int16_t, 8*8>, Vec<int16_t, 8*8>>(std::cout);
   MAKE_BENCH(idct4).run<Vec<int16_t, 4*4>, Vec<int16_t, 4*4>>(std::cout);
   bench_chroma_vert<4, 4>();
-  //MAKE_BENCH(imdct36).run<Vec<float, 17*32+1>, Vec<float, 4*5>, Vec<float, 18>, Vec<float, 38>>(std::cout);
+  //MAKE_BENCH(imdct36).run<Vec<float, 17*32+1>, Vec<float, 4*13>, Vec<float, 18>, Vec<float, 38>>(std::cout);
 }
