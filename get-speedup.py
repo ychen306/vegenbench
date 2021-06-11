@@ -3,7 +3,12 @@ import subprocess
 def get_perf(stdout):
   perf = {}
   for line in stdout.decode('utf8').strip().split('\n'):
-    kernel, time = line.split(',')
+    line_eles = line.split(',')
+    kernel = line_eles[0]
+    if len(line_eles) > 2:
+        for i in range(1, len(line_eles)-1):
+            kernel += "," + line_eles[i]
+    time = line_eles[-1]
     perf[kernel] = float(time)
   return perf
 

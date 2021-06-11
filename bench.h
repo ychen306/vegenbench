@@ -22,7 +22,7 @@ static inline uint64_t timer_begin() {
                "RDTSC\n\t" /*read the clock*/
                "mov %%edx, %0\n\t"
                "mov %%eax, %1\n\t"
-               : "=r"(begin_hi), "=r"(begin_lo)::"%rax", "%rbx", "%rcx",
+               : "=r"(hi), "=r"(lo)::"%rax", "%rbx", "%rcx",
                  "%rdx");
   return (uint64_t)lo | ((uint64_t)hi << 32);
 #elif defined(__aarch64__)
