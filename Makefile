@@ -12,6 +12,8 @@ ifeq ($(OPTFLAGS),)
 OPTFLAGS := -O3 $(ARCH) -ffast-math
 endif
 
+OPTFLAGS += -Xclang -load -Xclang ../vegen-build/gslp/libGSLP.so -O3 -fno-slp-vectorize -mllvm --wrappers-dir=../vegen-build
+
 ifeq ($(OPTCXX),)
 OPTCXX := $(CXX)
 endif
