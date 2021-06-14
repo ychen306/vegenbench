@@ -15,5 +15,11 @@ def get_perf(stdout):
 opt = get_perf(subprocess.check_output(['./bench']))
 ref = get_perf(subprocess.check_output(['./bench-ref']))
 
+geomean = 1
+num_kernels = len(opt)
 for kernel, t in opt.items():
-  print(kernel, ref[kernel] / t)
+  speedup = ref[kernel] / t
+  geomean *= speedup
+  print(kernel, speedup)
+geomean = geomean ** (1.0/float(num_kernels))
+print("geomean", geomean)
