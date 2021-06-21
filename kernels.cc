@@ -232,6 +232,7 @@ void idct4(const int16_t *__restrict__ src, int16_t *__restrict__ dst) {
   constexpr int shift = 7;
   constexpr int add = 1 << (shift - 1);
 
+#pragma unroll
   for (j = 0; j < line; j++) {
     /* Utilizing symmetry properties to the maximum to minimize the number of
      * multiplications */

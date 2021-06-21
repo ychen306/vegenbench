@@ -8,8 +8,8 @@ ifeq ($(OPTCXX),)
 OPTCXX := $(CXX)
 endif
 
-LIBASAN = DYLD_INSERT_LIBRARIES=/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib
 LIBASAN =
+LIBASAN = DYLD_INSERT_LIBRARIES=/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib
 
 
 all: bench bench-ref
@@ -27,7 +27,7 @@ bench.o: bench.cc bench.h kernels.h
 	$(CXX) -O3 -o $@ $< -std=c++14 -c
 
 kernels.o: kernels.cc kernels.h
-	DYLD_INSERT_LIBRARIES=/Library/Developer/CommandLineTools/usr/lib/clang/12.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib $(OPTCXX) $(OPTFLAGS) -o $@ -c $< -std=c++11
+	$(LIBASAN) $(OPTCXX) $(OPTFLAGS) -o $@ -c $< -std=c++11
 
 kernels-ref.o: kernels.cc kernels.h
 	$(CXX) -O3 -march=haswell -mavx2 -ffast-math -o $@ -c $< -std=c++11
