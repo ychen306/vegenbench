@@ -31,4 +31,17 @@ void chroma_420_filter_vss_impl(const int16_t* src, intptr_t srcStride, int16_t*
 
 void imdct36(float *__restrict__ out, float *__restrict__ buf, float *__restrict__ in, float *__restrict__ win);
 
+void matmul_int16(int16_t **dst, int16_t **mat1, int16_t **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c);
+void matmul_float(float **dst, float **mat1, float **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c);
+void matmul_double(double **dst, double **mat1, double **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c);
+void matmul_uint8(uint8_t **dst, uint8_t **mat1, uint8_t **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c);
+void matmul_int32(int32_t **dst, int32_t **mat1, int32_t **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c);
+void matmul_int64(int64_t **dst, int64_t **mat1, int64_t **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c);
+
 #endif // end KERNELS_H

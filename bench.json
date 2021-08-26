@@ -1,0 +1,28 @@
+[
+    {
+        "exename": "bench",
+        "name": "vegenbench-vegen",
+        "uid": "81ab5861-cc26-4785-9859-c00c19370854"
+    },
+    {
+        "exename": "bench-refine",
+        "name": "vegenbench-vegen-refine",
+        "uid": "5dce8272-b733-40f7-a761-ecea8413541f"
+    },
+    {
+        "exename": "bench-inter",
+        "name": "vegenbench-vegen-inter",
+        "uid": "7020aaf5-ae69-4771-bed9-9f1f39924448"
+    },
+    {
+        "exename": "bench-inter-refine",
+        "name": "vegenbench-vegen-inter-refine",
+        "uid": "c07a6e1c-54f6-45d9-86bf-9cd0ea07945a"
+    },
+    {
+        "exename": "bench-ref",
+        "name": "vegenbench-baseline",
+        "uid": "f455aa8c-f837-47e0-b432-f964b7771a8c"
+
+    }
+]

@@ -6,6 +6,10 @@
 #define MAC16(rt, ra, rb) rt += (ra) * (rb)
 #define MUL16(ra, rb) ((ra) * (rb))
 
+#ifndef M_SQRT1_2
+#define M_SQRT1_2 0.70710678118654752440
+#endif
+
 // https://github.com/FFmpeg/FFmpeg/blob/a0ac49e38ee1d1011c394d7be67d0f08b2281526/libavcodec/g722dsp.c
 // https://github.com/FFmpeg/FFmpeg/blob/a0ac49e38ee1d1011c394d7be67d0f08b2281526/libavcodec/x86/g722dsp.asm
 
@@ -595,3 +599,92 @@ void imdct36(INTFLOAT *__restrict__ out, INTFLOAT * __restrict__ buf, SUINTFLOAT
     buf[4 * ( 8 - 4     )] = MULH3(t0, win[MDCT_BUF_SIZE/2 + 8 - 4], 1);
 }
 
+void matmul_int16(int16_t **dst, int16_t **mat1, int16_t **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c)
+{
+    for(uint64_t i = 0; i < mat1_r; i++)
+    {
+        for(uint64_t j = 0; j < mat2_c; j++)
+        {
+            for(uint64_t k = 0; k < mat1_c; k++)
+            {
+                dst[i][j] += mat1[i][k] * mat2[k][j];
+            }
+        }
+    }
+}
+
+void matmul_float(float **dst, float **mat1, float **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c)
+{
+    for(uint64_t i = 0; i < mat1_r; i++)
+    {
+        for(uint64_t j = 0; j < mat2_c; j++)
+        {
+            for(uint64_t k = 0; k < mat1_c; k++)
+            {
+                dst[i][j] += mat1[i][k] * mat2[k][j];
+            }
+        }
+    }
+}
+
+void matmul_double(double **dst, double **mat1, double **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c)
+{
+    for(uint64_t i = 0; i < mat1_r; i++)
+    {
+        for(uint64_t j = 0; j < mat2_c; j++)
+        {
+            for(uint64_t k = 0; k < mat1_c; k++)
+            {
+                dst[i][j] += mat1[i][k] * mat2[k][j];
+            }
+        }
+    }
+}
+
+void matmul_uint8(uint8_t **dst, uint8_t **mat1, uint8_t **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c)
+{
+    for(uint64_t i = 0; i < mat1_r; i++)
+    {
+        for(uint64_t j = 0; j < mat2_c; j++)
+        {
+            for(uint64_t k = 0; k < mat1_c; k++)
+            {
+                dst[i][j] += mat1[i][k] * mat2[k][j];
+            }
+        }
+    }
+}
+
+void matmul_int32(int32_t **dst, int32_t **mat1, int32_t **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c)
+{
+    for(uint64_t i = 0; i < mat1_r; i++)
+    {
+        for(uint64_t j = 0; j < mat2_c; j++)
+        {
+            for(uint64_t k = 0; k < mat1_c; k++)
+            {
+                dst[i][j] += mat1[i][k] * mat2[k][j];
+            }
+        }
+    }
+}
+
+void matmul_int64(int64_t **dst, int64_t **mat1, int64_t **mat2,
+                  uint64_t dst_r, uint64_t dst_c, uint64_t mat1_r, uint64_t mat1_c, uint64_t mat2_r, uint64_t mat2_c)
+{
+    for(uint64_t i = 0; i < mat1_r; i++)
+    {
+        for(uint64_t j = 0; j < mat2_c; j++)
+        {
+            for(uint64_t k = 0; k < mat1_c; k++)
+            {
+                dst[i][j] += mat1[i][k] * mat2[k][j];
+            }
+        }
+    }
+}
