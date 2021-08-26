@@ -5,8 +5,12 @@
 #include <memory>
 #include <stddef.h>
 #include <string>
+#include <sstream>
 #include <utility>
 #include <vector>
+#include <iomanip>
+#include <iostream>
+#include <random>
 
 static inline uint64_t read_arm_timer() {
   int64_t virtual_timer_value;
@@ -71,9 +75,9 @@ template <typename F, typename Tuple> void call(F f, Tuple &t, unsigned i) {
   detail::call_impl<F, Tuple, 0 == std::tuple_size<ttype>::value,
                     std::tuple_size<ttype>::value>::call(f, t, i);
 }
-template <typename T, size_t _N> struct Vec {
+template <typename T, size_t _Nn> struct Vec {
   using ElemTy = T;
-  static constexpr size_t N = _N;
+  static constexpr size_t N = _Nn;
 
   std::unique_ptr<ElemTy[]> buf;
   void allocate(unsigned M) { buf.reset(new ElemTy[N * M]); }
@@ -132,9 +136,232 @@ template <typename FuncTy, FuncTy Func> struct Bench {
     double a = bench<FuncTy, Func, VecTypes...>(200),
            b = bench<FuncTy, Func, VecTypes...>(100);
     double it_per_cyc = (a - b) / 100;
-    os << name << "," << it_per_cyc << '\n';
+    os << std::setprecision(6) << name << "," << it_per_cyc << '\n';
   }
 };
+
+namespace patch
+{
+    template < typename T > std::string to_string( const T& n )
+    {
+        std::ostringstream stm ;
+        stm << n ;
+        return stm.str() ;
+    }
+}
+
+#define MAT_BLANK 0
+#define MAT_RAND 1
+
+int16_t **alloc_mat_int16(uint64_t rows, uint64_t cols, int alloc_type)
+{
+    int16_t **ret_mat = (int16_t **) malloc(sizeof(int16_t*)*rows);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dist(-1000, 1000);
+
+    for(uint64_t i = 0; i < rows; i++)
+    {
+        ret_mat[i] = (int16_t *) malloc(sizeof(int16_t)*cols);
+        for(uint64_t j = 0; j < cols; j++)
+        {
+            int16_t new_val = 0;
+            if(alloc_type == MAT_RAND)
+            {
+                new_val = (int16_t) dist(gen);
+            }
+            ret_mat[i][j] = new_val;
+        }
+    }
+
+    return ret_mat;
+}
+
+void dealloc_mat_int16(int16_t ***mat, uint64_t rows, uint64_t cols)
+{
+    /*for(uint64_t i = 0; i < rows; i++)
+    {
+        free(&((*mat)[i]));
+    }*/
+    free(*mat);
+    mat = NULL;
+}
+
+float **alloc_mat_float(uint64_t rows, uint64_t cols, int alloc_type)
+{
+    float **ret_mat = (float **) malloc(sizeof(float*)*rows);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dist(-1000, 1000);
+
+    for(uint64_t i = 0; i < rows; i++)
+    {
+        ret_mat[i] = (float *) malloc(sizeof(float)*cols);
+        for(uint64_t j = 0; j < cols; j++)
+        {
+            float new_val = 0;
+            if(alloc_type == MAT_RAND)
+            {
+                new_val = (float) dist(gen);
+            }
+            ret_mat[i][j] = new_val;
+        }
+    }
+
+    return ret_mat;
+}
+
+void dealloc_mat_float(float ***mat, uint64_t rows, uint64_t cols)
+{
+    /*for(uint64_t i = 0; i < rows; i++)
+    {
+        free(&((*mat)[i]));
+    }*/
+    free(*mat);
+    mat = NULL;
+}
+
+double **alloc_mat_double(uint64_t rows, uint64_t cols, int alloc_type)
+{
+    double **ret_mat = (double **) malloc(sizeof(double*)*rows);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dist(-1000, 1000);
+
+    for(uint64_t i = 0; i < rows; i++)
+    {
+        ret_mat[i] = (double *) malloc(sizeof(double)*cols);
+        for(uint64_t j = 0; j < cols; j++)
+        {
+            double new_val = 0;
+            if(alloc_type == MAT_RAND)
+            {
+                new_val = (double) dist(gen);
+            }
+            ret_mat[i][j] = new_val;
+        }
+    }
+
+    return ret_mat;
+}
+
+void dealloc_mat_double(double ***mat, uint64_t rows, uint64_t cols)
+{
+    /*for(uint64_t i = 0; i < rows; i++)
+    {
+        free(&((*mat)[i]));
+    }*/
+    free(*mat);
+    mat = NULL;
+}
+
+uint8_t **alloc_mat_uint8(uint64_t rows, uint64_t cols, int alloc_type)
+{
+    uint8_t **ret_mat = (uint8_t **) malloc(sizeof(uint8_t*)*rows);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dist(-10, 10);
+
+    for(uint64_t i = 0; i < rows; i++)
+    {
+        ret_mat[i] = (uint8_t *) malloc(sizeof(uint8_t)*cols);
+        for(uint64_t j = 0; j < cols; j++)
+        {
+            uint8_t new_val = 0;
+            if(alloc_type == MAT_RAND)
+            {
+                new_val = (uint8_t) dist(gen);
+            }
+            ret_mat[i][j] = new_val;
+        }
+    }
+
+    return ret_mat;
+}
+
+void dealloc_mat_uint8(uint8_t ***mat, uint64_t rows, uint64_t cols)
+{
+    /*for(uint64_t i = 0; i < rows; i++)
+    {
+        free(&((*mat)[i]));
+    }*/
+    free(*mat);
+    mat = NULL;
+}
+
+int32_t **alloc_mat_int32(uint64_t rows, uint64_t cols, int alloc_type)
+{
+    int32_t **ret_mat = (int32_t **) malloc(sizeof(int32_t*)*rows);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dist(-1000, 1000);
+
+    for(uint64_t i = 0; i < rows; i++)
+    {
+        ret_mat[i] = (int32_t *) malloc(sizeof(int32_t)*cols);
+        for(uint64_t j = 0; j < cols; j++)
+        {
+            int32_t new_val = 0;
+            if(alloc_type == MAT_RAND)
+            {
+                new_val = (int32_t) dist(gen);
+            }
+            ret_mat[i][j] = new_val;
+        }
+    }
+
+    return ret_mat;
+}
+
+void dealloc_mat_int32(int32_t ***mat, uint64_t rows, uint64_t cols)
+{
+    /*for(uint64_t i = 0; i < rows; i++)
+    {
+        free(&((*mat)[i]));
+    }*/
+    free(*mat);
+    mat = NULL;
+}
+
+int64_t **alloc_mat_int64(uint64_t rows, uint64_t cols, int alloc_type)
+{
+    int64_t **ret_mat = (int64_t **) malloc(sizeof(int64_t*)*rows);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dist(-1000, 1000);
+
+    for(uint64_t i = 0; i < rows; i++)
+    {
+        ret_mat[i] = (int64_t *) malloc(sizeof(int64_t)*cols);
+        for(uint64_t j = 0; j < cols; j++)
+        {
+            int64_t new_val = 0;
+            if(alloc_type == MAT_RAND)
+            {
+                new_val = (int64_t) dist(gen);
+            }
+            ret_mat[i][j] = new_val;
+        }
+    }
+
+    return ret_mat;
+}
+
+void dealloc_mat_int64(int64_t ***mat, uint64_t rows, uint64_t cols)
+{
+    /*for(uint64_t i = 0; i < rows; i++)
+    {
+        free(&((*mat)[i]));
+    }*/
+    free(*mat);
+    mat = NULL;
+}
 
 #define MAKE_BENCH(FUNC) Bench<decltype(FUNC), FUNC>(#FUNC)
 

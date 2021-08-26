@@ -2,17 +2,11 @@
 
 UNAME_P = $(shell uname -p)
 
-ifeq ($(UNAME_P),aarch64)
-ARCH :=
-else
-ARCH := -march=native
-endif
+#ifeq ($(OPTFLAGS),)
+OPTFLAGS := -Ofast $(ARCH)
+#endif
 
-ifeq ($(OPTFLAGS),)
-OPTFLAGS := -O3 $(ARCH) -ffast-math
-endif
-
-OPTFLAGS += -Xclang -load -Xclang ../vegen-build/gslp/libGSLP.so -O3 -fno-slp-vectorize -mllvm --wrappers-dir=../vegen-build
+OPTFLAGS_VEGEN := $(OPTFLAGS) -Xclang -load -Xclang ../vegen-build/gslp/libGSLP.so -fno-slp-vectorize -mllvm --wrappers-dir=../vegen-build
 
 ifeq ($(OPTCXX),)
 OPTCXX := $(CXX)
@@ -24,19 +18,19 @@ report: bench bench-ref
 	python get-speedup.py
 
 bench: kernels.o bench.o
-	$(CXX) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(OPTFLAGS_VEGEN) -o $@ $^
 
 bench-ref: kernels-ref.o bench.o
-	$(CXX) -o $@ $^
+	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $^
 
 bench.o: bench.cc bench.h kernels.h
-	$(CXX) -O3 -o $@ $< -std=c++14 -c
+	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $< -std=c++14 -c
 
 kernels.o: kernels.cc kernels.h
-	$(OPTCXX) $(OPTFLAGS) -o $@ -c $< -std=c++11
+	$(OPTCXX) $(CXXFLAGS) $(OPTFLAGS_VEGEN) -o $@ -c $< -std=c++11
 
 kernels-ref.o: kernels.cc kernels.h
-	$(CXX) -O3 $(ARCH) -ffast-math -o $@ -c $< -std=c++11
+	$(CXX) $(CXXFLAGS) $(ARCH) $(OPTFLAGS) -o $@ -c $< -std=c++11
 
 clean:
 	rm -f *.o bench bench-ref
