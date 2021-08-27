@@ -6,6 +6,48 @@
 #define MAC16(rt, ra, rb) rt += (ra) * (rb)
 #define MUL16(ra, rb) ((ra) * (rb))
 
+// https://github.com/FFmpeg/FFmpeg/blob/a0ac49e38ee1d1011c394d7be67d0f08b2281526/libavcodec/g722dsp.c
+// https://github.com/FFmpeg/FFmpeg/blob/a0ac49e38ee1d1011c394d7be67d0f08b2281526/libavcodec/x86/g722dsp.asm
+
+void g722_apply_qmf(const int16_t *__restrict__ prev_samples,
+                    int *__restrict__ xout) {
+  xout[1] = MUL16(*prev_samples++, 3);
+  xout[0] = MUL16(*prev_samples++, -11);
+
+  MAC16(xout[1], *prev_samples++, -11);
+  MAC16(xout[0], *prev_samples++, 53);
+
+  MAC16(xout[1], *prev_samples++, 12);
+  MAC16(xout[0], *prev_samples++, -156);
+
+  MAC16(xout[1], *prev_samples++, 32);
+  MAC16(xout[0], *prev_samples++, 362);
+
+  MAC16(xout[1], *prev_samples++, -210);
+  MAC16(xout[0], *prev_samples++, -805);
+
+  MAC16(xout[1], *prev_samples++, 951);
+  MAC16(xout[0], *prev_samples++, 3876);
+
+  MAC16(xout[1], *prev_samples++, 3876);
+  MAC16(xout[0], *prev_samples++, 951);
+
+  MAC16(xout[1], *prev_samples++, -805);
+  MAC16(xout[0], *prev_samples++, -210);
+
+  MAC16(xout[1], *prev_samples++, 362);
+  MAC16(xout[0], *prev_samples++, 32);
+
+  MAC16(xout[1], *prev_samples++, -156);
+  MAC16(xout[0], *prev_samples++, 12);
+
+  MAC16(xout[1], *prev_samples++, 53);
+  MAC16(xout[0], *prev_samples++, -11);
+
+  MAC16(xout[1], *prev_samples++, -11);
+  MAC16(xout[0], *prev_samples++, 3);
+}
+
 #define BF(x, y, a, b)                                                         \
   do {                                                                         \
     x = a - b;                                                                 \
@@ -70,65 +112,8 @@ void fft8(FFTComplex *z) {
 }
 
 
-static void fft5(FFTComplex *out, FFTComplex *in, FFTComplex exptab[2]) __attribute__((always_inline))
-{
-    FFTComplex z0[4], t[6];
-
-    t[0].re = in[3].re + in[12].re;
-    t[0].im = in[3].im + in[12].im;
-    t[1].im = in[3].re - in[12].re;
-    t[1].re = in[3].im - in[12].im;
-    t[2].re = in[6].re + in[ 9].re;
-    t[2].im = in[6].im + in[ 9].im;
-    t[3].im = in[6].re - in[ 9].re;
-    t[3].re = in[6].im - in[ 9].im;
-
-    out[0].re = in[0].re + in[3].re + in[6].re + in[9].re + in[12].re;
-    out[0].im = in[0].im + in[3].im + in[6].im + in[9].im + in[12].im;
-
-    t[4].re = exptab[0].re * t[2].re - exptab[1].re * t[0].re;
-    t[4].im = exptab[0].re * t[2].im - exptab[1].re * t[0].im;
-    t[0].re = exptab[0].re * t[0].re - exptab[1].re * t[2].re;
-    t[0].im = exptab[0].re * t[0].im - exptab[1].re * t[2].im;
-    t[5].re = exptab[0].im * t[3].re - exptab[1].im * t[1].re;
-    t[5].im = exptab[0].im * t[3].im - exptab[1].im * t[1].im;
-    t[1].re = exptab[0].im * t[1].re + exptab[1].im * t[3].re;
-    t[1].im = exptab[0].im * t[1].im + exptab[1].im * t[3].im;
-
-    z0[0].re = t[0].re - t[1].re;
-    z0[0].im = t[0].im - t[1].im;
-    z0[1].re = t[4].re + t[5].re;
-    z0[1].im = t[4].im + t[5].im;
-
-    z0[2].re = t[4].re - t[5].re;
-    z0[2].im = t[4].im - t[5].im;
-    z0[3].re = t[0].re + t[1].re;
-    z0[3].im = t[0].im + t[1].im;
-
-    out[1].re = in[0].re + z0[3].re;
-    out[1].im = in[0].im + z0[0].im;
-    out[2].re = in[0].re + z0[2].re;
-    out[2].im = in[0].im + z0[1].im;
-    out[3].re = in[0].re + z0[1].re;
-    out[3].im = in[0].im + z0[2].im;
-    out[4].re = in[0].re + z0[0].re;
-    out[4].im = in[0].im + z0[3].im;
-}
-
 
 // https://github.com/FFmpeg/FFmpeg/blob/e409262837712016097c187e97bf99aadf6a4cdf/libavutil/common.h#L154-L163
-static inline uint8_t av_clip_uint8_c(int a) {
-  if (a & (~0xFF))
-    return (~a) >> 31;
-  else
-    return a;
-}
-
-#define SUINT unsigned
-#define pixel uint8_t
-#define dctcoef int16_t
-#define av_clip_pixel av_clip_uint8_c
-
 
 #define SBC_COS_TABLE_FIXED_SCALE 15
 #define SBC_PROTO_FIXED_SCALE 16
@@ -220,6 +205,60 @@ void idct8(const int16_t *__restrict__ src, int16_t *__restrict__ dst) {
   }
 }
 
+void idct8_partial(const int16_t *__restrict__ src, int *__restrict__ E0,
+                   int *__restrict__ E1, int *__restrict__ E2,
+                   int *__restrict__ E3, int *__restrict__ O0,
+                   int *__restrict__ O1, int *__restrict__ O2,
+                   int *__restrict__ O3) {
+  int j, k;
+  // int E[4], O[4];
+  int EE[2], EO[2];
+  constexpr int shift = 7;
+  constexpr int add = 1 << (shift - 1);
+
+  constexpr int line = 8;
+
+#pragma unroll
+  for (j = 0; j < line; j++) {
+    /* Utilizing symmetry properties to the maximum to minimize the number of
+     * multiplications */
+    {
+      int k = 0;
+      O0[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
+              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
+    }
+    {
+      int k = 1;
+      O1[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
+              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
+    }
+    {
+      int k = 2;
+      O2[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
+              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
+    }
+    {
+      int k = 3;
+      O3[j] = g_t8[1][k] * src[line] + g_t8[3][k] * src[3 * line] +
+              g_t8[5][k] * src[5 * line] + g_t8[7][k] * src[7 * line];
+    }
+
+    EO[0] = g_t8[2][0] * src[2 * line] + g_t8[6][0] * src[6 * line];
+    EO[1] = g_t8[2][1] * src[2 * line] + g_t8[6][1] * src[6 * line];
+    EE[0] = g_t8[0][0] * src[0] + g_t8[4][0] * src[4 * line];
+    EE[1] = g_t8[0][1] * src[0] + g_t8[4][1] * src[4 * line];
+
+    /* Combining even and odd terms at each hierarchy levels to calculate the
+     * final spatial domain vector */
+    E0[j] = EE[0] + EO[0];
+    E3[j] = EE[0] - EO[0];
+    E1[j] = EE[1] + EO[1];
+    E2[j] = EE[1] - EO[1];
+
+    src++;
+  }
+}
+
 static constexpr int16_t g_t4[4][4] = {{65, 65, 65, 65},
                                        {83, 36, -36, -83},
                                        {65, -65, -65, 65},
@@ -232,7 +271,6 @@ void idct4(const int16_t *__restrict__ src, int16_t *__restrict__ dst) {
   constexpr int shift = 7;
   constexpr int add = 1 << (shift - 1);
 
-#pragma unroll
   for (j = 0; j < line; j++) {
     /* Utilizing symmetry properties to the maximum to minimize the number of
      * multiplications */
@@ -306,7 +344,9 @@ void chroma_420_filter_vss_impl(const int16_t *src, intptr_t srcStride,
                                 int coeffIdx) {
   interp_vert_ss_c<4, 4, 8>(src, srcStride, dst, dstStride, coeffIdx);
 }
+
 #if 0
+
 #define INTFLOAT float
 #define SUINTFLOAT float
 #define MULH3(x, y, s) ((s)*(y)*(x))
@@ -429,4 +469,5 @@ void imdct36(INTFLOAT *__restrict__ out, INTFLOAT * __restrict__ buf, SUINTFLOAT
     buf[4 * ( 9 + 4     )] = MULH3(t0, win[MDCT_BUF_SIZE/2 + 9 + 4], 1);
     buf[4 * ( 8 - 4     )] = MULH3(t0, win[MDCT_BUF_SIZE/2 + 8 - 4], 1);
 }
+
 #endif
