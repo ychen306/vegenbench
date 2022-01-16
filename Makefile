@@ -9,13 +9,15 @@ ARCH := -march=native
 endif
 
 ifeq ($(OPTFLAGS),)
-OPTFLAGS := -O3 $(ARCH) -ffast-math
+OPTFLAGS := -O3 $(ARCH) -ffast-math -march=haswell -mavx512f -mavx512vl -mavx512vnni -mavx512bw -mllvm -refine-plans -mllvm -allow-transpose -mllvm -allow-deinterleave
+OPTFLAGS := -O3 -march=haswell -mavx2 -mavx512f -mavx512bw -mavx512vl -mavx512vnni -mllvm -allow-deinterleave -mllvm -allow-transpose
+OPTFLAGS := -O3 -march=native -ffast-math -mllvm -allow-transpose -mllvm -allow-deinterleave
+OPTFLAGS := -O3 -ffast-math -march=haswell -mavx512f -mavx512vl -mavx512vnni -mavx512bw -mllvm -allow-transpose -mllvm -allow-deinterleave -mllvm -filter=sbc -mllvm -debug-only=heuristic
+OPTFLAGS := -O3 -ffast-math -march=haswell -mavx512f -mavx512vl -mavx512vnni -mavx512bw -mllvm -allow-transpose -mllvm -allow-deinterleave
 endif
 
-OPTFLAGS += -Xclang -load -Xclang ../vegen-build/gslp/libGSLP.so -O3 -fno-slp-vectorize -mllvm --wrappers-dir=../vegen-build
-
 ifeq ($(OPTCXX),)
-OPTCXX := $(CXX)
+OPTCXX := vegen-clang
 endif
 
 all: bench bench-ref
